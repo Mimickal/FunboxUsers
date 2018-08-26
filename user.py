@@ -1,11 +1,7 @@
 class User:
-	'''A container for a funbox user.
-
-	Field order should match the order in the Users SQL table,
-	so tuple expansion doesn't break.
-	'''
-	def __init__(self, id, name, pass_hash, pass_salt, \
-	email, created_at, updated_at, accessed_at):
+	'''A container for a funbox user.'''
+	def __init__(self, name, pass_hash, pass_salt, id=None, \
+	email=None, created_at=None, updated_at=None, accessed_at=None):
 		self.id = id
 		self.name = name
 		self.pass_hash = pass_hash

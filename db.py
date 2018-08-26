@@ -33,4 +33,14 @@ def getUser(name):
 		accessed_at = data['accessed_at']
 	)
 
+def addUser(user):
+	'''Creates a new user.'''
+	global DB_CONN
+	cursor = DB_CONN.execute('''
+		INSERT INTO Users (
+			name, pass_hash, pass_salt, email
+		) VALUES (?, ?, ?, ?);
+	''', (user.name, user.pass_hash, user.pass_salt, user.email))
+	DB_CONN.commit()
+	return cursor.lastrowid
 
