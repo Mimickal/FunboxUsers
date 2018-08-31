@@ -16,6 +16,9 @@ def getUser(name):
 	cursor = DB_CONN.execute('SELECT * FROM Users WHERE name = ?', name)
 	row = cursor.fetchone()
 
+	if row is None:
+		return None
+
 	# Convert row to map with named fields
 	data = {}
 	desc = cursor.description
