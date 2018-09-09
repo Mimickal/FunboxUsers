@@ -13,7 +13,7 @@ DB_CONN.executescript(SETUP_SCRIPT)
 def getUser(name):
 	'''Gets a user by their name.'''
 	global DB_CONN
-	cursor = DB_CONN.execute('SELECT * FROM Users WHERE name = ?', name)
+	cursor = DB_CONN.execute('SELECT * FROM Users WHERE name = ?', [name])
 	row = cursor.fetchone()
 
 	if row is None:
