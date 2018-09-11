@@ -28,15 +28,17 @@ def verifyUser():
 	auth = request.authorization
 	user = db.getUser(auth.username)
 
+	# Return 403 instead of a 404 to make list of users harder to brute force
 	if user is None:
-		return "User %s not found" % auth.username, 404
+		return "Forbidden", 403
 
 	pw_hash = scrypt.hash(auth.password, user.pass_salt)
 
 	if pw_hash == user.pass_hash:
-		return "ok", 200
+		return "Ok", 200
 	else:
 		return "Forbidden", 403
+
 
 @app.route('/create', methods=['POST'])
 def createUser():
