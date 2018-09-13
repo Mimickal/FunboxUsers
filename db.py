@@ -43,7 +43,7 @@ def addUser(user):
 		INSERT INTO Users (
 			name, pass_hash, pass_salt, email
 		) VALUES (?, ?, ?, ?);
-	''', (user.name, user.pass_hash, user.pass_salt, user.email))
+	''', [user.name, user.pass_hash, user.pass_salt, user.email])
 	DB_CONN.commit()
 	return cursor.lastrowid
 
