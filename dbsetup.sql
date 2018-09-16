@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS Users (
 CREATE TRIGGER IF NOT EXISTS trig_created_at
 AFTER INSERT ON Users
 BEGIN
-	UPDATE Users 
+	UPDATE Users
 	SET created_at = datetime(CURRENT_TIMESTAMP, 'localtime')
 	WHERE id = NEW.id;
 END;

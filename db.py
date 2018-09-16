@@ -47,3 +47,18 @@ def addUser(user):
 	DB_CONN.commit()
 	return cursor.lastrowid
 
+def updateUser(user):
+	'''Updates a user.
+	Not-present or null values are unset.'''
+	global DB_CONN
+	cursor = DB_CONN.execute('''
+		UPDATE Users SET
+			name = ?,
+			pass_hash = ?,
+			pass_salt = ?,
+			email = ?
+		WHERE id = ?;
+	''', [user.name, user.pass_hash, user.pass_salt, user.email, user.id])
+	DB_CONN.commit()
+	return cursor.rowcount
+
