@@ -47,6 +47,55 @@ class VerifyTest(ServerTest):
 			self.assertEqual(response.status_code, 403)
 			self.assertEqual(response.get_data(as_text=True), 'Forbidden')
 
+	def test_passDoesNotMatch(self):
+		response = self.app.get(
+			'/verify', headers=authHeader(self.test_name, 'badpass'))
+		with self.subTest():
+			self.assertEqual(response.status_code, 403)
+			self.assertEqual(response.get_data(as_text=True), 'Forbidden')
+
+
+class AddEmailTest(ServerTest):
+
+	def setUp(self):
+		super().setUp()
+		db.addUser(self.test_user)
+
+	def test_userDoeNotExist(self):
+		response = self.app.put(
+			'/update/email', headers=authHeader('baduser', 'pass'))
+		with self.subTest():
+			self.assertEqual(response.status_code, 403)
+			self.assertEqual(response.get_data(as_text=True), 'Forbidden')
+
+	def test_passDoesNotMatch(self):
+		response = self.app.put(
+			'/update/email', headers=authHeader(self.test_name, 'badpass'))
+		with self.subTest():
+			self.assertEqual(response.status_code, 403)
+			self.assertEqual(response.get_data(as_text=True), 'Forbidden')
+
+	def test_emailInvalid(self):
+		response = self.app.put(
+			'/update/email', headers=self.headers, data='bademail')
+		with self.subTest():
+			self.assertEqual(response.status_code, 400)
+			self.assertEqual(response.get_data(as_text=True), 'Invalid email')
+
+	def test_emailAdded(self):
+		email = 'new@email.com'
+		response = self.app.put(
+			'/update/email', headers=self.headers, data=email)
+		with self.subTest():
+			self.assertEqual(response.status_code, 200)
+			self.assertEqual(response.get_data(as_text=True), 'Ok')
+
+			user = db.getUser(self.test_name)
+			self.assertEqual(user.name, self.test_user.name)
+			self.assertEqual(user.pass_hash, self.test_user.pass_hash)
+			self.assertEqual(user.pass_salt, self.test_user.pass_salt)
+			self.assertEqual(user.email, email)
+
 
 def authHeader(username, password):
 	return {
