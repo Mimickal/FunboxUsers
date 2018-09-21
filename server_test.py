@@ -100,6 +100,14 @@ class AddEmailTest(ServerTest):
 			self.assertEqual(user.pass_salt, self.test_user.pass_salt)
 			self.assertEqual(user.email, email)
 
+class GenericErrorTest(ServerTest):
+
+	def test_badEndpoint(self):
+		response = self.app.get('/bad/endpoint')
+		with self.subTest():
+			self.assertEqual(response.status_code, 403)
+			self.assertEqual(response.get_data(as_text=True), 'Forbidden')
+
 
 def authHeader(username, password):
 	return {

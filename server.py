@@ -8,18 +8,15 @@ import db
 app = Flask('Funbox Accounts')
 EMAIL_VALIDATOR = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
 
-class AccountException(Exception):
-    '''General purpose error Flask can catch'''
-    def __init__(self, http_code, message):
-        self.http_code = http_code
-        self.message = message
 
-@app.errorhandler(AccountException)
-def handleAccountException(exception):
-	'''Override Flask's default behavior for unexpected exceptions,
-	so we can send a pure data response instead of rendered HTML.
-	'''
-	return exception.message, exception.http_code
+@app.errorhandler(404)
+@app.errorhandler(405)
+def handle_generic(err):
+	return forbidden()
+
+@app.errorhandler(500)
+def handle_500(err):
+	return 'Internal server error', 500
 
 
 @app.route('/verify', methods=['GET'])
