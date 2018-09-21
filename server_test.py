@@ -63,14 +63,18 @@ class AddEmailTest(ServerTest):
 
 	def test_userDoeNotExist(self):
 		response = self.app.put(
-			'/update/email', headers=authHeader('baduser', 'pass'))
+			'/update/email',
+			headers=authHeader('baduser', 'pass'),
+			data='example@email.com')
 		with self.subTest():
 			self.assertEqual(response.status_code, 403)
 			self.assertEqual(response.get_data(as_text=True), 'Forbidden')
 
 	def test_passDoesNotMatch(self):
 		response = self.app.put(
-			'/update/email', headers=authHeader(self.test_name, 'badpass'))
+			'/update/email',
+			headers=authHeader(self.test_name, 'badpass'),
+			data='example@email.com')
 		with self.subTest():
 			self.assertEqual(response.status_code, 403)
 			self.assertEqual(response.get_data(as_text=True), 'Forbidden')

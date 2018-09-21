@@ -1,10 +1,12 @@
 from flask import Flask, request
 import scrypt
+import re
 
 from user import User
 import db
 
 app = Flask('Funbox Accounts')
+EMAIL_VALIDATOR = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
 
 class AccountException(Exception):
     '''General purpose error Flask can catch'''
@@ -39,16 +41,21 @@ def verifyUser():
 
 @app.route('/update/email', methods=['PUT'])
 def addEmail():
+	global EMAIL_VALIDATOR
 	auth = request.authorization
 	user = db.getUser(auth.username)
+	email = request.get_data(as_text=True)
 
 	if user is None:
 		return forbidden()
 
+	if EMAIL_VALIDATOR.match(email) is None:
+		return 'Invalid email', 400
+
 	pw_hash = scrypt.hash(auth.password, user.pass_salt)
 
 	if pw_hash == user.pass_hash:
-		user.email = request.get_data(as_text=True)
+		user.email = email
 		db.updateUser(user)
 		return ok()
 	else:
