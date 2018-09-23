@@ -192,6 +192,28 @@ class AddCodeTest(DBTest):
 			self.assertIsNone(code.get('used_at'))
 
 
+class GetCodeTest(DBTest):
+
+	def setUp(self):
+		self.test_id = addTestUser(self)[0]
+		db.DB_CONN.execute('''
+			INSERT INTO Codes (code, user_id)
+			VALUES (?, ?)
+		''', [self.test_code1, self.test_id])
+
+	def test_nonExisting(self):
+		code = db.getCode('badcode')
+		self.assertIsNone(code)
+
+	def test_codeRetrieved(self):
+		code = db.getCode(self.test_code1)
+		with self.subTest():
+			self.assertIsNotNone(code)
+			self.assertEqual(code.get('code'), self.test_code1)
+			self.assertEqual(code.get('user_id'), self.test_id)
+
+
+
 def addTestUser(self):
 	db.DB_CONN.execute('''
 		INSERT INTO Users (

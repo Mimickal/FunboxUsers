@@ -71,3 +71,23 @@ def addCode(code, user_id):
 	''', [code, user_id])
 	DB_CONN.commit()
 
+def getCode(code):
+	'''Gets a code if it hasn't been used'''
+	global DB_CONN
+	cursor = DB_CONN.execute('''
+		SELECT * FROM Codes
+		WHERE code = ?
+		AND used_at IS NULL;
+	''', [code])
+	row = cursor.fetchone()
+
+	if row is None:
+		return None
+
+	data = {}
+	desc = cursor.description
+	for x in range(len(desc)):
+		data[desc[x][0]] = row[x];
+
+	return data
+
