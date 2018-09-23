@@ -3,7 +3,6 @@ import scrypt
 import re
 from subprocess import Popen, PIPE
 
-from user import User
 import db
 
 app = Flask('Funbox Accounts')
@@ -29,9 +28,9 @@ def verifyUser():
 	if user is None:
 		return forbidden()
 
-	pw_hash = scrypt.hash(auth.password, user.pass_salt)
+	pw_hash = scrypt.hash(auth.password, user.get('pass_salt'))
 
-	if pw_hash == user.pass_hash:
+	if pw_hash == user.get('pass_hash'):
 		return ok()
 	else:
 		return forbidden()
@@ -50,10 +49,10 @@ def addEmail():
 	if EMAIL_VALIDATOR.match(email) is None:
 		return 'Invalid email', 400
 
-	pw_hash = scrypt.hash(auth.password, user.pass_salt)
+	pw_hash = scrypt.hash(auth.password, user.get('pass_salt'))
 
-	if pw_hash == user.pass_hash:
-		user.email = email
+	if pw_hash == user.get('pass_hash'):
+		user['email'] = email
 		db.updateUser(user)
 		return ok()
 	else:

@@ -1,7 +1,5 @@
 import sqlite3
 
-from user import User
-
 # Connect to DB and setup tables, if necessary
 DB_NAME = 'fbusers.db'
 DB_CONN = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_COLNAMES)
@@ -25,16 +23,7 @@ def getUser(name):
 	for x in range(len(desc)):
 		data[desc[x][0]] = row[x];
 
-	return User(
-		id = data['id'],
-		name = data['name'],
-		pass_hash = data['pass_hash'],
-		pass_salt = data['pass_salt'],
-		email = data['email'],
-		created_at = data['created_at'],
-		updated_at = data['updated_at'],
-		accessed_at = data['accessed_at']
-	)
+	return data
 
 def addUser(user):
 	'''Creates a new user.'''
@@ -43,13 +32,17 @@ def addUser(user):
 		INSERT INTO Users (
 			name, pass_hash, pass_salt, email
 		) VALUES (?, ?, ?, ?);
-	''', [user.name, user.pass_hash, user.pass_salt, user.email])
+	''', [
+		user.get('name'),
+		user.get('pass_hash'),
+		user.get('pass_salt'),
+		user.get('email')
+	])
 	DB_CONN.commit()
 	return cursor.lastrowid
 
 def updateUser(user):
-	'''Updates a user.
-	Not-present or null values are unset.'''
+	'''Updates a user. Not-present or null values are unset.'''
 	global DB_CONN
 	cursor = DB_CONN.execute('''
 		UPDATE Users SET
@@ -58,7 +51,13 @@ def updateUser(user):
 			pass_salt = ?,
 			email = ?
 		WHERE id = ?;
-	''', [user.name, user.pass_hash, user.pass_salt, user.email, user.id])
+	''', [
+		user.get('name'),
+		user.get('pass_hash'),
+		user.get('pass_salt'),
+		user.get('email'),
+		user.get('id')
+	])
 	DB_CONN.commit()
 	return cursor.rowcount
 

@@ -4,9 +4,7 @@ import scrypt
 from time import mktime, sleep, time as now
 from datetime import datetime
 
-from server import AccountException
 import db
-from user import User
 
 class DBTest(unittest.TestCase):
 
@@ -36,10 +34,10 @@ class GetUserTest(DBTest):
 	def test_fieldsPreserved(self):
 		user = db.getUser(self.test_name)
 		with self.subTest():
-			self.assertEqual(user.name, self.test_name)
-			self.assertEqual(user.pass_hash, self.test_hash)
-			self.assertEqual(user.pass_salt, self.test_salt)
-			self.assertEqual(user.email, self.test_email)
+			self.assertEqual(user.get('name'), self.test_name)
+			self.assertEqual(user.get('pass_hash'), self.test_hash)
+			self.assertEqual(user.get('pass_salt'), self.test_salt)
+			self.assertEqual(user.get('email'), self.test_email)
 
 	def test_noUserFound(self):
 		user = db.getUser('badname')
@@ -51,12 +49,12 @@ class AddUserTest(DBTest):
 
 	def setUp(self):
 		super().setUp()
-		self.test_user = User(
-			name=self.test_name,
-			pass_hash=self.test_hash,
-			pass_salt=self.test_salt,
-			email=self.test_email
-		)
+		self.test_user = {
+			'name': self.test_name,
+			'pass_hash': self.test_hash,
+			'pass_salt': self.test_salt,
+			'email': self.test_email
+		}
 
 	def test_fieldsPreserved(self):
 		db.addUser(self.test_user)
@@ -90,28 +88,28 @@ class AddUserTest(DBTest):
 
 	def test_hashAndSaltRequired(self):
 		with self.assertRaises(sqlite3.IntegrityError):
-			db.addUser(User(
-				name=self.test_name,
-				pass_hash=self.test_hash,
-				pass_salt=None
-			))
-			db.addUser(User(
-				name=self.test_name,
-				pass_hash=None,
-				pass_salt=self.test_salt
-			))
+			db.addUser({
+				'name': self.test_name,
+				'pass_hash': self.test_hash,
+				'pass_salt': None
+			})
+			db.addUser({
+				'name': self.test_name,
+				'pass_hash': None,
+				'pass_salt': self.test_salt
+			})
 
 
 class UpdateUserTest(DBTest):
 
 	def setUp(self):
 		'''Create a test user'''
-		self.test_user = User(
-			name=self.test_name,
-			pass_hash=self.test_hash,
-			pass_salt=self.test_salt,
-			email=self.test_email
-		)
+		self.test_user = {
+			'name': self.test_name,
+			'pass_hash': self.test_hash,
+			'pass_salt': self.test_salt,
+			'email': self.test_email
+		}
 		db.DB_CONN.execute('''
 			INSERT INTO Users (
 				name, pass_hash, pass_salt, email
@@ -122,42 +120,46 @@ class UpdateUserTest(DBTest):
 			'SELECT * FROM Users WHERE name = ?', [self.test_name]
 		)
 		row = cursor.fetchone()
-		self.test_user = User(
-			id=row[0],
-			name=row[1],
-			pass_hash=row[2],
-			pass_salt=row[3],
-			email=row[4],
-			created_at=row[5],
-			updated_at=row[6],
-			accessed_at=row[7]
-		)
+		self.test_user = {
+			'id': row[0],
+			'name': row[1],
+			'pass_hash': row[2],
+			'pass_salt': row[3],
+			'email': row[4],
+			'created_at': row[5],
+			'updated_at': row[6],
+			'accessed_at': row[7]
+		}
 
 	def test_updatedUser(self):
 		update_email = 'new@email.com'
-		self.test_user.email = update_email
+		self.test_user['email'] = update_email
 		res = db.updateUser(self.test_user)
 		update_user = db.getUser(self.test_name)
 
 		with self.subTest():
-			self.assertEqual(update_user.name, self.test_name)
-			self.assertEqual(update_user.pass_hash, self.test_hash)
-			self.assertEqual(update_user.pass_salt, self.test_salt)
-			self.assertEqual(update_user.email, update_email)
+			self.assertEqual(update_user.get('name'), self.test_name)
+			self.assertEqual(update_user.get('pass_hash'), self.test_hash)
+			self.assertEqual(update_user.get('pass_salt'), self.test_salt)
+			self.assertEqual(update_user.get('email'), update_email)
 
 	def test_modifiedUpdated(self):
 		sleep(1) # Delay to ensure modified time is different
 		db.updateUser(self.test_user)
 		update_user = db.getUser(self.test_name)
 
-		self.assertNotEqual(update_user.updated_at, self.test_user.updated_at)
+		self.assertNotEqual(
+			update_user.get('updated_at'), self.test_user.get('updated_at')
+		)
 
 	def test_createdNotUpdated(self):
 		sleep(1) # Same here
 		db.updateUser(self.test_user)
 		update_user = db.getUser(self.test_name)
 
-		self.assertEqual(update_user.created_at, self.test_user.created_at)
+		self.assertEqual(
+			update_user.get('created_at'), self.test_user.get('created_at')
+		)
 
 
 def dateNearNow(date):

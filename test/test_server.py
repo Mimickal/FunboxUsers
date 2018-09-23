@@ -4,7 +4,6 @@ from base64 import b64encode
 
 from server import app
 import db
-from user import User
 
 class ServerTest(unittest.TestCase):
 
@@ -15,11 +14,11 @@ class ServerTest(unittest.TestCase):
 		self.test_pass = 'testpass'
 		salt = 'saltything'
 		self.headers = authHeader(self.test_name, self.test_pass)
-		self.test_user = User(
-			name=self.test_name,
-			pass_salt=salt,
-			pass_hash=scrypt.hash(self.test_pass, salt)
-		)
+		self.test_user = {
+			'name': self.test_name,
+			'pass_salt': salt,
+			'pass_hash': scrypt.hash(self.test_pass, salt)
+		}
 
 	def tearDown(self):
 		db.DB_CONN.execute(
@@ -95,10 +94,16 @@ class AddEmailTest(ServerTest):
 			self.assertEqual(response.get_data(as_text=True), 'Ok')
 
 			user = db.getUser(self.test_name)
-			self.assertEqual(user.name, self.test_user.name)
-			self.assertEqual(user.pass_hash, self.test_user.pass_hash)
-			self.assertEqual(user.pass_salt, self.test_user.pass_salt)
-			self.assertEqual(user.email, email)
+			self.assertEqual(
+				user.get('name'), self.test_user.get('name')
+			)
+			self.assertEqual(
+				user.get('pass_hash'), self.test_user.get('pass_hash')
+			)
+			self.assertEqual(
+				user.get('pass_salt'), self.test_user.get('pass_salt')
+			)
+			self.assertEqual(user.get('email'), email)
 
 class GenericErrorTest(ServerTest):
 

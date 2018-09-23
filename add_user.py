@@ -3,7 +3,6 @@ from string import ascii_letters, digits, printable
 import scrypt
 from sqlite3 import IntegrityError
 
-from user import User
 import db
 
 
@@ -15,13 +14,11 @@ def createUser(username):
 	pw_salt = randomStr(printable, 10)
 	pw_hash = memoryview(scrypt.hash(temp_pass, pw_salt))
 
-	user = User(
-		name=username,
-		pass_hash=pw_hash,
-		pass_salt=pw_salt
-	)
-
-	db.addUser(user)
+	db.addUser({
+		'name': username,
+		'pass_hash': pw_hash,
+		'pass_salt': pw_salt
+	})
 	return temp_pass
 
 
