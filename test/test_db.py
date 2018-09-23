@@ -12,11 +12,19 @@ class DBTest(unittest.TestCase):
 	test_salt = 'testsalt'
 	test_hash = scrypt.hash('testpass', test_salt)
 	test_email = 'test@email.com'
+	test_code1 = 'abcd'
+	test_code2 = '1234'
+	test_code3 = 'wxyz'
 
 	def tearDown(self):
 		'''Removes the test user from the database'''
 		db.DB_CONN.execute(
 			'DELETE FROM Users WHERE name = ?', [self.test_name]
+		)
+		db.DB_CONN.commit()
+		db.DB_CONN.execute(
+			'DELETE FROM Codes WHERE code IN (?,?,?)',
+			[self.test_code1, self.test_code2, self.test_code3]
 		)
 		db.DB_CONN.commit()
 
@@ -25,11 +33,7 @@ class GetUserTest(DBTest):
 
 	def setUp(self):
 		'''Create a test user'''
-		db.DB_CONN.execute('''
-			INSERT INTO Users (
-				name, pass_hash, pass_salt, email
-			) VALUES (?, ?, ?, ?);
-		''', (self.test_name, self.test_hash, self.test_salt, self.test_email))
+		addTestUser(self)
 
 	def test_fieldsPreserved(self):
 		user = db.getUser(self.test_name)
@@ -110,16 +114,7 @@ class UpdateUserTest(DBTest):
 			'pass_salt': self.test_salt,
 			'email': self.test_email
 		}
-		db.DB_CONN.execute('''
-			INSERT INTO Users (
-				name, pass_hash, pass_salt, email
-			) VALUES (?, ?, ?, ?);
-		''', (self.test_name, self.test_hash, self.test_salt, self.test_email))
-
-		cursor = db.DB_CONN.execute(
-			'SELECT * FROM Users WHERE name = ?', [self.test_name]
-		)
-		row = cursor.fetchone()
+		row = addTestUser(self)
 		self.test_user = {
 			'id': row[0],
 			'name': row[1],
@@ -161,6 +156,52 @@ class UpdateUserTest(DBTest):
 			update_user.get('created_at'), self.test_user.get('created_at')
 		)
 
+
+class AddCodeTest(DBTest):
+
+	def setUp(self):
+		self.test_id = addTestUser(self)[0]
+
+	def test_none(self):
+		with self.assertRaises(sqlite3.IntegrityError):
+			db.addCode(None, self.test_id)
+
+	def test_duplicate(self):
+		db.addCode(self.test_code1, self.test_id)
+		with self.assertRaises(sqlite3.IntegrityError):
+			db.addCode(self.test_code1, self.test_id)
+
+	def test_codeAdded(self):
+		db.addCode(self.test_code1, self.test_id)
+		db.addCode(self.test_code2, self.test_id)
+		row = db.DB_CONN.execute(
+			'SELECT * FROM Codes WHERE code = ?', [self.test_code1]
+		).fetchone()
+
+		code = {
+			'code': row[0],
+			'user_id': row[1],
+			'created_at': row[2],
+			'used_at': row[3]
+		}
+
+		with self.subTest():
+			self.assertEqual(code.get('code'), self.test_code1)
+			self.assertEqual(code.get('user_id'), self.test_id)
+			self.assertTrue(dateNearNow(code.get('created_at')))
+			self.assertIsNone(code.get('used_at'))
+
+
+def addTestUser(self):
+	db.DB_CONN.execute('''
+		INSERT INTO Users (
+			name, pass_hash, pass_salt, email
+		) VALUES (?, ?, ?, ?);
+	''', (self.test_name, self.test_hash, self.test_salt, self.test_email))
+	cursor = db.DB_CONN.execute(
+		'SELECT * FROM Users WHERE name = ?', [self.test_name]
+	)
+	return cursor.fetchone()
 
 def dateNearNow(date):
 	'''Check that the given time is within a few seconds of now.'''
