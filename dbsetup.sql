@@ -20,7 +20,7 @@ CREATE TRIGGER IF NOT EXISTS trig_user_created_at
 AFTER INSERT ON Users
 BEGIN
 	UPDATE Users
-	SET created_at = datetime(CURRENT_TIMESTAMP, 'localtime')
+	SET created_at = DATETIME('now', 'localtime')
 	WHERE id = NEW.id;
 END;
 
@@ -28,7 +28,7 @@ CREATE TRIGGER IF NOT EXISTS trig_user_updated_at
 AFTER UPDATE ON Users
 BEGIN
 	UPDATE Users
-	SET updated_at = datetime(CURRENT_TIMESTAMP, 'localtime')
+	SET updated_at = DATETIME('now', 'localtime')
 	WHERE id = NEW.id;
 END;
 
@@ -36,7 +36,7 @@ CREATE TRIGGER IF NOT EXISTS trig_code_created_at
 AFTER INSERT ON Codes
 BEGIN
 	UPDATE Codes
-	SET created_at = datetime(CURRENT_TIMESTAMP, 'localtime')
+	SET created_at = DATETIME('now', 'localtime')
 	WHERE code = NEW.code
 	AND created_at IS NULL;
 END;
