@@ -91,3 +91,14 @@ def getCode(code):
 
 	return data
 
+def useCode(code):
+	'''Sets a code's used_at field, effectively marking it as used.'''
+	global DB_CONN
+	cursor = DB_CONN.execute('''
+		UPDATE Codes
+		SET used_at = DATETIME('now')
+		WHERE code = ?;
+	''', [code])
+	DB_CONN.commit()
+	return cursor.rowcount
+

@@ -196,10 +196,7 @@ class GetCodeTest(DBTest):
 
 	def setUp(self):
 		self.test_id = addTestUser(self)[0]
-		db.DB_CONN.execute('''
-			INSERT INTO Codes (code, user_id)
-			VALUES (?, ?)
-		''', [self.test_code1, self.test_id])
+		addTestCode(self)
 
 	def test_nonExisting(self):
 		code = db.getCode('badcode')
@@ -213,6 +210,27 @@ class GetCodeTest(DBTest):
 			self.assertEqual(code.get('user_id'), self.test_id)
 
 
+class UseCodeTest(DBTest):
+
+	def setUp(self):
+		self.test_id = addTestUser(self)[0]
+		addTestCode(self)
+
+	def test_nonExisting(self):
+		db.useCode('badcode')
+		row = getTestCode('badcode')
+		self.assertIsNone(row)
+
+
+	def test_used(self):
+		row = getTestCode(self.test_code1)
+		self.assertIsNone(row[3]) # used_at
+
+		db.useCode(self.test_code1)
+
+		row = getTestCode(self.test_code1)
+		self.assertTrue(dateNearNow(row[3]))
+
 
 def addTestUser(self):
 	db.DB_CONN.execute('''
@@ -224,6 +242,17 @@ def addTestUser(self):
 		'SELECT * FROM Users WHERE name = ?', [self.test_name]
 	)
 	return cursor.fetchone()
+
+def addTestCode(self):
+	db.DB_CONN.execute('''
+		INSERT INTO Codes (code, user_id)
+		VALUES (?, ?)
+	''', [self.test_code1, self.test_id])
+
+def getTestCode(code):
+	return db.DB_CONN.execute(
+		'SELECT * FROM Codes WHERE code = ?', [code]
+	).fetchone()
 
 def dateNearNow(date):
 	'''Check that the given time is within a few seconds of now.'''
