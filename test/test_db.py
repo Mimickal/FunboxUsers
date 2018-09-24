@@ -221,7 +221,6 @@ class UseCodeTest(DBTest):
 		row = getTestCode('badcode')
 		self.assertIsNone(row)
 
-
 	def test_used(self):
 		row = getTestCode(self.test_code1)
 		self.assertIsNone(row[3]) # used_at
@@ -230,6 +229,36 @@ class UseCodeTest(DBTest):
 
 		row = getTestCode(self.test_code1)
 		self.assertTrue(dateNearNow(row[3]))
+
+
+class CullOldCodeTest(DBTest):
+
+	def setUp(self):
+		self.test_id = addTestUser(self)[0]
+
+	def test_oldCulled(self):
+		db.DB_CONN.execute('''
+			INSERT INTO Codes (code, user_id, created_at)
+			VALUES
+				(?, ?, DATETIME('now')),
+				(?, ?, DATETIME('now', '-1 days')),
+				(?, ?, DATETIME('now', '-3 days'));
+		''', [
+			self.test_code1, self.test_id,
+			self.test_code2, self.test_id,
+			self.test_code3, self.test_id
+		])
+		with self.subTest():
+			self.assertIsNotNone(db.getCode(self.test_code1))
+			self.assertIsNotNone(db.getCode(self.test_code2))
+			self.assertIsNotNone(db.getCode(self.test_code3))
+
+			count = db.cullOldCodes()
+
+			self.assertEqual(count, 1)
+			self.assertIsNotNone(db.getCode(self.test_code1))
+			self.assertIsNotNone(db.getCode(self.test_code2))
+			self.assertIsNone(db.getCode(self.test_code3))
 
 
 def addTestUser(self):

@@ -37,6 +37,7 @@ AFTER INSERT ON Codes
 BEGIN
 	UPDATE Codes
 	SET created_at = datetime(CURRENT_TIMESTAMP, 'localtime')
-	WHERE code = NEW.code;
+	WHERE code = NEW.code
+	AND created_at IS NULL;
 END;
 

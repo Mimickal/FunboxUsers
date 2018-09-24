@@ -102,3 +102,14 @@ def useCode(code):
 	DB_CONN.commit()
 	return cursor.rowcount
 
+def cullOldCodes():
+	'''Deletes all old, unused codes.'''
+	global DB_CONN
+	cursor = DB_CONN.execute('''
+		DELETE FROM Codes
+		WHERE used_at IS NULL
+		AND created_at < DATETIME('now', '-2 days');
+	''')
+	DB_CONN.commit()
+	return cursor.rowcount
+
