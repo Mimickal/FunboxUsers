@@ -9,7 +9,14 @@ CREATE TABLE IF NOT EXISTS Users (
 	accessed_at TIMESTAMP
 );
 
-CREATE TRIGGER IF NOT EXISTS trig_created_at
+CREATE TABLE IF NOT EXISTS Codes (
+	code       TEXT       UNIQUE NOT NULL,
+	user_id    INTEGER    REFERENCES Users(id),
+	created_at TIMESTAMP,
+	used_at    TIMESTAMP
+);
+
+CREATE TRIGGER IF NOT EXISTS trig_user_created_at
 AFTER INSERT ON Users
 BEGIN
 	UPDATE Users
@@ -17,11 +24,19 @@ BEGIN
 	WHERE id = NEW.id;
 END;
 
-CREATE TRIGGER IF NOT EXISTS trig_updated_at
+CREATE TRIGGER IF NOT EXISTS trig_user_updated_at
 AFTER UPDATE ON Users
 BEGIN
 	UPDATE Users
 	SET updated_at = datetime(CURRENT_TIMESTAMP, 'localtime')
 	WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trig_code_created_at
+AFTER INSERT ON Codes
+BEGIN
+	UPDATE Codes
+	SET created_at = datetime(CURRENT_TIMESTAMP, 'localtime')
+	WHERE code = NEW.code;
 END;
 
