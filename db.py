@@ -61,14 +61,14 @@ def updateUser(user):
 	DB_CONN.commit()
 	return cursor.rowcount
 
-def addCode(code, user_id):
+def addCode(code, user_id, email):
 	'''Adds a new verification code.'''
 	global DB_CONN
 	DB_CONN.execute('''
 		INSERT INTO Codes (
-			code, user_id
-		) VALUES (?, ?);
-	''', [code, user_id])
+			code, user_id, email
+		) VALUES (?, ?, ?);
+	''', [code, user_id, email])
 	DB_CONN.commit()
 
 def getCode(code):

@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS Users (
 CREATE TABLE IF NOT EXISTS Codes (
 	code       TEXT       UNIQUE NOT NULL,
 	user_id    INTEGER    REFERENCES Users(id),
+	email      TEXT       NOT NULL,
 	created_at TIMESTAMP,
 	used_at    TIMESTAMP
 );

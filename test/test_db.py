@@ -162,18 +162,22 @@ class AddCodeTest(DBTest):
 	def setUp(self):
 		self.test_id = addTestUser(self)[0]
 
-	def test_none(self):
+	def test_codeNone(self):
 		with self.assertRaises(sqlite3.IntegrityError):
-			db.addCode(None, self.test_id)
+			db.addCode(None, self.test_id, self.test_email)
 
 	def test_duplicate(self):
-		db.addCode(self.test_code1, self.test_id)
+		db.addCode(self.test_code1, self.test_id, self.test_email)
 		with self.assertRaises(sqlite3.IntegrityError):
-			db.addCode(self.test_code1, self.test_id)
+			db.addCode(self.test_code1, self.test_id, self.test_email)
+
+	def test_emailNone(self):
+		with self.assertRaises(sqlite3.IntegrityError):
+			db.addCode(self.test_code1, self.test_id, None)
 
 	def test_codeAdded(self):
-		db.addCode(self.test_code1, self.test_id)
-		db.addCode(self.test_code2, self.test_id)
+		db.addCode(self.test_code1, self.test_id, self.test_email)
+		db.addCode(self.test_code2, self.test_id, 'email2')
 		row = db.DB_CONN.execute(
 			'SELECT * FROM Codes WHERE code = ?', [self.test_code1]
 		).fetchone()
@@ -181,13 +185,15 @@ class AddCodeTest(DBTest):
 		code = {
 			'code': row[0],
 			'user_id': row[1],
-			'created_at': row[2],
-			'used_at': row[3]
+			'email': row[2],
+			'created_at': row[3],
+			'used_at': row[4]
 		}
 
 		with self.subTest():
 			self.assertEqual(code.get('code'), self.test_code1)
 			self.assertEqual(code.get('user_id'), self.test_id)
+			self.assertEqual(code.get('email'), self.test_email)
 			self.assertTrue(dateNearNow(code.get('created_at')))
 			self.assertIsNone(code.get('used_at'))
 
@@ -208,6 +214,7 @@ class GetCodeTest(DBTest):
 			self.assertIsNotNone(code)
 			self.assertEqual(code.get('code'), self.test_code1)
 			self.assertEqual(code.get('user_id'), self.test_id)
+			self.assertEqual(code.get('email'), self.test_email)
 
 
 class UseCodeTest(DBTest):
@@ -223,12 +230,12 @@ class UseCodeTest(DBTest):
 
 	def test_used(self):
 		row = getTestCode(self.test_code1)
-		self.assertIsNone(row[3]) # used_at
+		self.assertIsNone(row[4]) # used_at
 
 		db.useCode(self.test_code1)
 
 		row = getTestCode(self.test_code1)
-		self.assertTrue(dateNearNow(row[3]))
+		self.assertTrue(dateNearNow(row[4]))
 
 
 class CullOldCodeTest(DBTest):
@@ -238,15 +245,15 @@ class CullOldCodeTest(DBTest):
 
 	def test_oldCulled(self):
 		db.DB_CONN.execute('''
-			INSERT INTO Codes (code, user_id, created_at)
+			INSERT INTO Codes (code, user_id, email, created_at)
 			VALUES
-				(?, ?, DATETIME('now')),
-				(?, ?, DATETIME('now', '-1 days')),
-				(?, ?, DATETIME('now', '-3 days'));
+				(?, ?, ?, DATETIME('now')),
+				(?, ?, ?, DATETIME('now', '-1 days')),
+				(?, ?, ?, DATETIME('now', '-3 days'));
 		''', [
-			self.test_code1, self.test_id,
-			self.test_code2, self.test_id,
-			self.test_code3, self.test_id
+			self.test_code1, self.test_id, 'email1',
+			self.test_code2, self.test_id, 'email2',
+			self.test_code3, self.test_id, 'email3'
 		])
 		with self.subTest():
 			self.assertIsNotNone(db.getCode(self.test_code1))
@@ -274,9 +281,9 @@ def addTestUser(self):
 
 def addTestCode(self):
 	db.DB_CONN.execute('''
-		INSERT INTO Codes (code, user_id)
-		VALUES (?, ?)
-	''', [self.test_code1, self.test_id])
+		INSERT INTO Codes (code, user_id, email)
+		VALUES (?, ?, ?)
+	''', [self.test_code1, self.test_id, self.test_email])
 
 def getTestCode(code):
 	return db.DB_CONN.execute(
