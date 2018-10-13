@@ -1,8 +1,10 @@
 import unittest
+from unittest.mock import patch
 import scrypt
 from base64 import b64encode
+import re
 
-from server import app
+from server import app, makeUniqueCode
 import db
 
 class ServerTest(unittest.TestCase):
@@ -58,7 +60,7 @@ class AddEmailTest(ServerTest):
 
 	def setUp(self):
 		super().setUp()
-		db.addUser(self.test_user)
+		self.test_id = db.addUser(self.test_user)
 
 	def test_userDoeNotExist(self):
 		response = self.app.put(
@@ -85,7 +87,8 @@ class AddEmailTest(ServerTest):
 			self.assertEqual(response.status_code, 400)
 			self.assertEqual(response.get_data(as_text=True), 'Invalid email')
 
-	def test_emailAdded(self):
+	@patch('server.sendmail')
+	def test_codeAdded(self, mock_emailer):
 		email = 'new@email.com'
 		response = self.app.put(
 			'/update/email', headers=self.headers, data=email)
@@ -93,17 +96,45 @@ class AddEmailTest(ServerTest):
 			self.assertEqual(response.status_code, 200)
 			self.assertEqual(response.get_data(as_text=True), 'Ok')
 
-			user = db.getUser(self.test_name)
-			self.assertEqual(
-				user.get('name'), self.test_user.get('name')
-			)
-			self.assertEqual(
-				user.get('pass_hash'), self.test_user.get('pass_hash')
-			)
-			self.assertEqual(
-				user.get('pass_salt'), self.test_user.get('pass_salt')
-			)
-			self.assertEqual(user.get('email'), email)
+			args = mock_emailer.call_args[0]
+			self.assertEqual(args[0], email)
+			self.assertEqual(args[1], 'Funbox Email Verification')
+
+			# Check that our confirm link contains a valid code
+			match = re.search(r'email\/confirm\/(\w{8})', args[2])
+			self.assertIsNotNone(match)
+			code = match.groups()[0]
+			self.assertIsNotNone(db.getCode(code))
+
+			# Clean up code
+			db.DB_CONN.execute('DELETE FROM Codes WHERE code = ?', [code])
+			db.DB_CONN.commit()
+
+	def test_codesUnique(self):
+		# Add a bunch of codes
+		num_codes = 10
+		added_codes = []
+		for _ in range(num_codes):
+			code = makeUniqueCode()
+			db.addCode(code, self.test_id, 'test@email.com')
+			added_codes.append(code)
+
+		# Verify that all codes were added and unique
+		cursor = db.DB_CONN.execute('''
+				SELECT DISTINCT count(1)
+				FROM Codes
+				WHERE code IN ({})
+			'''.format(','.join(['?'] * num_codes)),
+			added_codes)
+			# ^^^ Yes, python actually needs this jank^^^
+		codes_added = cursor.fetchone()[0]
+		self.assertEqual(codes_added, num_codes)
+
+		# Cleanup
+		db.DB_CONN.execute('''
+				DELETE FROM Codes WHERE code IN ({})
+			'''.format(','.join(['?'] * num_codes)),
+			added_codes)
 
 class GenericErrorTest(ServerTest):
 

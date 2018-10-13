@@ -2,12 +2,14 @@ from flask import Flask, request
 import scrypt
 import re
 from subprocess import Popen, PIPE
+from random import choice
+from string import ascii_letters, digits
 
 import db
 
 app = Flask('Funbox Accounts')
 EMAIL_VALIDATOR = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
-
+CODE_SIZE = 8
 
 @app.errorhandler(404)
 @app.errorhandler(405)
@@ -52,8 +54,15 @@ def addEmail():
 	pw_hash = scrypt.hash(auth.password, user.get('pass_salt'))
 
 	if pw_hash == user.get('pass_hash'):
-		user['email'] = email
-		db.updateUser(user)
+		# Create an email verify code
+		code = makeUniqueCode()
+		db.addCode(code, user.get('id'), email)
+
+		# TODO we're hard coding this link for now
+		link = 'https://funbox.com.ru:20100/update/email/confirm/' + code
+		sendmail(email, 'Funbox Email Verification',
+			'Hello from funbox! Use this link to verify your email: ' + link)
+
 		return ok()
 	else:
 		return forbidden()
@@ -64,6 +73,14 @@ def ok():
 
 def forbidden():
 	return 'Forbidden', 403
+
+def makeUniqueCode():
+	global CODE_SIZE
+	# Bootleg do-while. Thanks Python.
+	while True:
+		code = ''.join(choice(ascii_letters + digits) for _ in range(CODE_SIZE))
+		if db.getCode(code) is None:
+			return code
 
 def sendmail(email, subject, message):
 	post = "\n\n\nNote: This is an automated email. " + \
