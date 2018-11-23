@@ -25,6 +25,22 @@ def getUser(name):
 
 	return data
 
+def getUserById(uid):
+	'''Gets a user by their DB assigned ID'''
+	global DB_CONN
+	cursor = DB_CONN.execute('SELECT * FROM Users WHERE id = ?', [uid])
+	row = cursor.fetchone()
+
+	if row is None:
+		return None
+
+	data = {}
+	desc = cursor.description
+	for x in range(len(desc)):
+		data[desc[x][0]] = row[x]
+
+	return data
+
 def addUser(user):
 	'''Creates a new user.'''
 	global DB_CONN

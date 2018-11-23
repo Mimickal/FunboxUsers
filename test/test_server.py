@@ -136,6 +136,67 @@ class AddEmailTest(ServerTest):
 			'''.format(','.join(['?'] * num_codes)),
 			added_codes)
 
+
+class ConfirmCodeTest(ServerTest):
+
+	def setUp(self):
+		super().setUp()
+		self.test_id = db.addUser(self.test_user)
+		self.test_code = 'Test1234'
+		self.test_email = 'test@email.com'
+		db.addCode(self.test_code, self.test_id, self.test_email)
+
+	def tearDown(self):
+		super().tearDown()
+		db.DB_CONN.execute('DELETE FROM Codes WHERE code = ?', [self.test_code])
+
+	def test_badCode(self):
+		bad_codes = [
+			'I am bad',
+			'; 1 == 1',
+			'code123<',
+			'>code123',
+			'short',
+			'ThisIsTooLong'
+		]
+		for code in bad_codes:
+			resp = self.app.get('/update/email/confirm/' + code)
+			self.assertEqual(resp.status_code, 403)
+			self.assertEqual(resp.get_data(as_text=True), 'Forbidden')
+
+	def test_codeUsed(self):
+		db.useCode(self.test_code)
+		response = self.app.get('/update/email/confirm/' + self.test_code)
+
+		self.assertEqual(response.status_code, 403)
+		self.assertEqual(response.get_data(as_text=True), 'Forbidden')
+
+		user = db.getUserById(self.test_id)
+		self.assertIsNone(user.get('email', None))
+
+	def test_deletedUser(self):
+		db.DB_CONN.execute('DELETE FROM Users WHERE ID = ?', [self.test_id])
+		response = self.app.get('/update/email/confirm/' + self.test_code)
+
+		self.assertEqual(response.status_code, 403)
+		self.assertEqual(response.get_data(as_text=True), 'Forbidden')
+
+		user = db.getUserById(self.test_id)
+		self.assertIsNone(user)
+
+	def test_emailAdded(self):
+		response = self.app.get('/update/email/confirm/' + self.test_code)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(response.get_data(as_text=True), 'Ok')
+
+		user = db.getUserById(self.test_id)
+		self.assertEqual(user.get('email'), self.test_email)
+
+		code = db.getCode(self.test_code)
+		self.assertIsNone(code)
+
+
 class GenericErrorTest(ServerTest):
 
 	def test_badEndpoint(self):

@@ -9,6 +9,7 @@ import db
 
 app = Flask('Funbox Accounts')
 EMAIL_VALIDATOR = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
+CODE_VALIDATOR = re.compile(r'^(\w{8})$')
 CODE_SIZE = 8
 
 @app.errorhandler(404)
@@ -66,6 +67,28 @@ def addEmail():
 		return ok()
 	else:
 		return forbidden()
+
+
+@app.route('/update/email/confirm/<code>', methods=['GET'])
+def confirmEmail(code):
+	global CODE_VALIDATOR
+
+	if CODE_VALIDATOR.match(code) is None:
+		return forbidden()
+
+	code_info = db.getCode(code)
+	if code_info is None:
+		return forbidden()
+
+	user = db.getUserById(code_info.get('user_id'))
+	if user is None:
+		return forbidden()
+
+	user['email'] = code_info.get('email')
+	db.updateUser(user)
+	db.useCode(code_info.get('code'))
+
+	return ok()
 
 
 def ok():
