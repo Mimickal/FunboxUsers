@@ -116,7 +116,7 @@ class AddEmailTest(ServerTest):
 		added_codes = []
 		for _ in range(num_codes):
 			code = makeUniqueCode()
-			db.addCode(code, self.test_id, 'test@email.com')
+			db.addEmailCode(code, self.test_id, 'test@email.com')
 			added_codes.append(code)
 
 		# Verify that all codes were added and unique
@@ -144,7 +144,7 @@ class ConfirmCodeTest(ServerTest):
 		self.test_id = db.addUser(self.test_user)
 		self.test_code = 'Test1234'
 		self.test_email = 'test@email.com'
-		db.addCode(self.test_code, self.test_id, self.test_email)
+		db.addEmailCode(self.test_code, self.test_id, self.test_email)
 
 	def tearDown(self):
 		super().tearDown()

@@ -1,5 +1,8 @@
 import sqlite3
 
+CODE_TYPE_PASS = 'pass'
+CODE_TYPE_EMAIL = 'email'
+
 # Connect to DB and setup tables, if necessary
 DB_NAME = 'fbusers.db'
 DB_CONN = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_COLNAMES)
@@ -77,14 +80,30 @@ def updateUser(user):
 	DB_CONN.commit()
 	return cursor.rowcount
 
-def addCode(code, user_id, email):
-	'''Adds a new verification code.'''
+def addEmailCode(code, user_id, email):
+	'''Adds a new email verification code.'''
 	global DB_CONN
+	global CODE_TYPE_EMAIL
+
+	if email is None:
+		raise sqlite3.IntegrityError('Email codes must define an email')
+
 	DB_CONN.execute('''
 		INSERT INTO Codes (
-			code, user_id, email
+			type, code, user_id, email
+		) VALUES (?, ?, ?, ?);
+	''', [CODE_TYPE_EMAIL, code, user_id, email])
+	DB_CONN.commit()
+
+def addPasswordCode(code, user_id):
+	'''Adds a new password reset code.'''
+	global DB_CONN
+	global CODE_TYPE_PASS
+	DB_CONN.execute('''
+		INSERT INTO Codes (
+			type, code, user_id
 		) VALUES (?, ?, ?);
-	''', [code, user_id, email])
+	''', [CODE_TYPE_PASS, code, user_id])
 	DB_CONN.commit()
 
 def getCode(code):

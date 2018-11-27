@@ -57,7 +57,7 @@ def addEmail():
 	if pw_hash == user.get('pass_hash'):
 		# Create an email verify code
 		code = makeUniqueCode()
-		db.addCode(code, user.get('id'), email)
+		db.addEmailCode(code, user.get('id'), email)
 
 		# TODO we're hard coding this link for now
 		link = 'https://funbox.com.ru:20100/update/email/confirm/' + code
