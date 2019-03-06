@@ -1,29 +1,35 @@
-import unittest
+from pocha import describe, it, after_each, before
 from sqlite3 import IntegrityError
 
 from add_user import createUser
 import db
 
-class AddUserTest(unittest.TestCase):
+@describe('add_user')
+def add_user_test():
 
-	test_name = 'AddUserTest'
+	test_name = "AddUserTest"
 
-	def tearDown(self):
+	# We need to also do this before in case of our database already
+	# containing a user named AddUserTest.
+	@before
+	@after_each
+	def cleanup():
 		db.DB_CONN.execute(
-			'DELETE FROM Users WHERE name = ?', [self.test_name]
-		)
-		db.DB_CONN.commit()
+		'DELETE FROM Users WHERE name = ?', [test_name]
+	)
+	db.DB_CONN.commit()
 
-	def test_createUser(self):
-		new_pass = createUser(self.test_name)
-		self.assertIsNotNone(new_pass)
+	@it('can create a new user')
+	def test_createUser():
+		new_pass = createUser(test_name)
+		assert new_pass != None
 
-	def test_createDuplicateUser(self):
-		new_pass_1 = createUser(self.test_name)
-		with self.assertRaises(IntegrityError):
-			createUser(self.test_name)
-
-
-if __name__ == '__main__':
-	unittest.main()
-
+	@it('can detect it when we are trying to create a user that already exists')
+	def test_createDuplicateUser():
+		passed = False
+		new_pass_1 = createUser(test_name)
+		try:
+			createUser(test_name)
+		except IntegrityError:
+			passed = True
+		assert passed
