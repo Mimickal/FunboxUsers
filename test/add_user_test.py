@@ -1,11 +1,11 @@
-from pocha import describe, it, after_each, before
+from pocha import describe, it, afterEach, before
 from hamcrest import *
 from sqlite3 import IntegrityError
 
 from add_user import createUser
 import db
 
-@describe('add_user')
+@describe('Add User')
 def add_user_test():
 
 	test_name = "AddUserTest"
@@ -13,7 +13,7 @@ def add_user_test():
 	# We need to also do this before in case of our database already
 	# containing a user named AddUserTest.
 	@before
-	@after_each
+	@afterEach
 	def cleanup():
 		db.DB_CONN.execute(
 			'DELETE FROM Users WHERE name = ?', [test_name]

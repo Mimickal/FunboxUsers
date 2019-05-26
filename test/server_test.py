@@ -225,7 +225,7 @@ def serverTests():
 			assert_that(user.get('email'), equal_to(test_email))
 			assert_that(db.getCode(test_code), none())
 
-	@describe('Generic Error Test')
+	@describe('Generic Error')
 	def genericError():
 
 		@it('Bad Endpoint')
