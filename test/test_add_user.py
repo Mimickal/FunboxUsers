@@ -1,4 +1,5 @@
 from pocha import describe, it, after_each, before
+from hamcrest import *
 from sqlite3 import IntegrityError
 
 from add_user import createUser
@@ -15,21 +16,20 @@ def add_user_test():
 	@after_each
 	def cleanup():
 		db.DB_CONN.execute(
-		'DELETE FROM Users WHERE name = ?', [test_name]
-	)
-	db.DB_CONN.commit()
+			'DELETE FROM Users WHERE name = ?', [test_name]
+		)
+		db.DB_CONN.commit()
 
 	@it('can create a new user')
 	def test_createUser():
 		new_pass = createUser(test_name)
-		assert new_pass != None
+		assert_that(new_pass, not_none())
 
 	@it('can detect it when we are trying to create a user that already exists')
 	def test_createDuplicateUser():
-		passed = False
-		new_pass_1 = createUser(test_name)
-		try:
-			createUser(test_name)
-		except IntegrityError:
-			passed = True
-		assert passed
+		createUser(test_name)
+		assert_that(
+			calling(createUser).with_args(test_name),
+			raises(IntegrityError, 'UNIQUE constraint failed: Users.name')
+		)
+
