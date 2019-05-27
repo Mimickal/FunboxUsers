@@ -232,6 +232,14 @@ def databaseTests():
 				raises(IntegrityError, 'NOT NULL constraint failed: Codes.code')
 			)
 
+		@it('Empty string not allowed for code')
+		def codeEmpty():
+			nonlocal test_id
+			assert_that(
+				calling(db.addEmailCode).with_args('', test_id, test_email),
+				raises(IntegrityError, 'CHECK constraint failed: Codes')
+			)
+
 		@it('Duplicate codes not allowed')
 		def duplicate():
 			nonlocal test_id

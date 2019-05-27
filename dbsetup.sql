@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS Users (
 );
 
 CREATE TABLE IF NOT EXISTS Codes (
-	code       TEXT       UNIQUE NOT NULL,
-	user_id    INTEGER    REFERENCES Users(id),
+	code       TEXT       UNIQUE NOT NULL CHECK(code != ''),
+	user_id    INTEGER    NOT NULL REFERENCES Users(id),
 	type       TEXT       NOT NULL,
 	email      TEXT,
 	created_at TIMESTAMP,
