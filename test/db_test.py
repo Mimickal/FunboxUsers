@@ -193,20 +193,27 @@ def databaseTests():
 
 		@it('Date modified changed on update')
 		def modifiedUpdated():
+			nonlocal added_user
 			sleep(1) # Delay to ensure modified time is different
-			db.updateUser(test_user)
+			db.updateUser(added_user)
+
 			update_user = db.getUser(test_name)
 			assert_that(
 				update_user.get('updated_at'),
-				not_(equal_to(test_user.get('updated_at')))
+				not_(equal_to(added_user.get('updated_at')))
 			)
 
 		@it('Date created not changed on update')
 		def createdNotUpdated():
+			nonlocal added_user
 			sleep(1) # Same here
-			db.updateUser(test_user)
+			db.updateUser(added_user)
+
 			update_user = db.getUser(test_name)
-			assert_that(update_user.get('created_at'), test_user.get('created_at'))
+			assert_that(
+				update_user.get('created_at'),
+				equal_to(added_user.get('created_at'))
+			)
 
 	@describe('Add Code')
 	def addCode():
