@@ -131,7 +131,7 @@ def useCode(code):
 	global DB_CONN
 	cursor = DB_CONN.execute('''
 		UPDATE Codes
-		SET used_at = DATETIME('now')
+		SET used_at = DATETIME('now', 'localtime')
 		WHERE code = ?;
 	''', [code])
 	DB_CONN.commit()

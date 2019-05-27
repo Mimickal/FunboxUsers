@@ -313,7 +313,7 @@ def databaseTests():
 			db.useCode(test_code1)
 
 			row = getTestCode(test_code1)
-			assertDateNearNow(row[4]) # created_at
+			assertDateNearNow(row[5])
 
 	@describe('Cull Old Codes')
 	def cullOldCodes():
