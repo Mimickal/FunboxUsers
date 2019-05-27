@@ -243,7 +243,7 @@ def databaseTests():
 		@it('Duplicate codes not allowed')
 		def duplicate():
 			nonlocal test_id
-			db.addEmailCode(test_code1, test_id, test_email)
+			db.addPasswordCode(test_code1, test_id)
 			assert_that(
 				calling(db.addEmailCode).with_args(test_code1, test_id, test_email),
 				raises(IntegrityError, 'UNIQUE constraint failed: Codes.code')
@@ -261,7 +261,7 @@ def databaseTests():
 		def codeAdded():
 			nonlocal test_id
 			db.addEmailCode(test_code1, test_id, test_email)
-			db.addEmailCode(test_code2, test_id, 'email2')
+			db.addPasswordCode(test_code2, test_id)
 			row = db.DB_CONN.execute(
 				'SELECT * FROM Codes WHERE code = ?', [test_code1]
 			).fetchone()
