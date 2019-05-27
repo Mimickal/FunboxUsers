@@ -1,4 +1,4 @@
-from pocha import describe, it, before, beforeEach, afterEach
+from pocha import describe, it, before, beforeEach, after
 from hamcrest import *
 from sqlite3 import IntegrityError
 import scrypt
@@ -73,16 +73,17 @@ def databaseTests():
 	def beforeAll():
 		cleanup()
 
+	@after
+	def afterAll():
+		cleanup()
+
 	@describe('Get User')
 	def getUser():
 
 		@beforeEach
 		def _beforeEach():
-			addTestUser()
-
-		@afterEach
-		def _afterEach():
 			cleanup()
+			addTestUser()
 
 		@it('User fields persisted')
 		def fieldsPreserved():
@@ -100,8 +101,8 @@ def databaseTests():
 	@describe('Add User')
 	def addUser():
 
-		@afterEach
-		def _afterEach():
+		@beforeEach
+		def _beforeEach():
 			cleanup()
 
 		@it('Fields preserved')
@@ -164,6 +165,7 @@ def databaseTests():
 		@beforeEach
 		def _beforeEach():
 			nonlocal added_user
+			cleanup()
 			row = addTestUser(whole_row=True)
 			added_user = {
 				'id': row[0],
@@ -175,10 +177,6 @@ def databaseTests():
 				'updated_at': row[6],
 				'accessed_at': row[7]
 			}
-
-		@afterEach
-		def _afterEach():
-			cleanup()
 
 		@it('Update user email preserves other fields')
 		def updatedUser():
@@ -216,11 +214,8 @@ def databaseTests():
 		@beforeEach
 		def _beforeEach():
 			nonlocal test_id
-			test_id = addTestUser()
-
-		@afterEach
-		def _afterEach():
 			cleanup()
+			test_id = addTestUser()
 
 		@it('None not allowed for code')
 		def codeNone():
@@ -269,12 +264,9 @@ def databaseTests():
 		@beforeEach
 		def _beforeEach():
 			nonlocal test_id
+			cleanup()
 			test_id = addTestUser()
 			addTestCode()
-
-		@afterEach
-		def _afterEach():
-			cleanup()
 
 		@it('None returned for non-existing code')
 		def nonExisting():
@@ -296,12 +288,9 @@ def databaseTests():
 		@beforeEach
 		def _beforeEach():
 			nonlocal test_id
+			cleanup()
 			test_id = addTestUser()
 			addTestCode()
-
-		@afterEach
-		def _afterEach():
-			cleanup()
 
 		@it('None returned for using non-existing code')
 		def nonExisting():
@@ -325,6 +314,7 @@ def databaseTests():
 		@beforeEach
 		def _beforeEach():
 			nonlocal test_id
+			cleanup()
 			test_id = addTestUser()
 
 		@it('Old codes culled')
