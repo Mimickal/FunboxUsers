@@ -1,0 +1,24 @@
+<!--Test this with and without javascript to see how it works-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+	<link rel="stylesheet" href="{{ url_for('static', filename='funbox.css') }}">
+	<link rel="shortcut icon" href="{{ url_for('static', filename='err.svg') }}">
+	<script src="{{ url_for('static', filename='login.js') }}"></script>
+	<title>Funbox Login</title>
+</head>
+<body>
+	<form class="fb-pane" method="post">
+		<h1>Funbox Login</h1>
+		<input id="user" type="text" name="username" placeholder="Username"/>
+		<input id="pass" type="password" name="password" placeholder="Password"/>
+		<div id="issue" class="issue"></div>
+		<button id="login" type=button>Login</button>
+
+		<!--Haha you can't register yourself-->
+		<a href="" hidden=true>Or register instead</a>
+	</form>
+</body>
+</html>
+

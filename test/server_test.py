@@ -55,6 +55,41 @@ def serverTests():
 		cleanupUsers(test_name)
 		cleanupCodes(test_code)
 
+	@describe('Login')
+	def login():
+
+		@beforeEach
+		def _beforeEach():
+			db.addUser(test_user)
+
+		@afterEach
+		def _afterEach():
+			cleanupUsers(test_name)
+
+		@it('Non-existing user')
+		def noUser():
+			response = app.post('/login', data={
+				'username': 'Idontexist',
+				'password': 'lalala'
+			})
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Existing user but bad password')
+		def badPassword():
+			response = app.post('/login', data={
+				'username': test_name,
+				'password': 'badpassword'
+			})
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Successful login')
+		def goodLogin():
+			response = app.post('/login', data={
+				'username': test_name,
+				'password': test_pass
+			})
+			assertResponse(response, 200, 'Ok')
+
 	@describe('Verify')
 	def verify():
 

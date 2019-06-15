@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, render_template
 import scrypt
 import re
 from subprocess import Popen, PIPE
@@ -20,6 +20,25 @@ def handle_generic(err):
 @app.errorhandler(500)
 def handle_500(err):
 	return 'Internal server error', 500
+
+
+@app.route('/login', methods=['GET'])
+def getLogin():
+	return render_template('login.html');
+
+@app.route('/login', methods=['POST'])
+def userLogin():
+	user = db.getUser(request.form.get('username'))
+
+	if user is None:
+		return forbidden()
+
+	pw_hash = scrypt.hash(request.form.get('password'), user.get('pass_salt'))
+
+	if pw_hash == user.get('pass_hash'):
+		return ok()
+	else:
+		return forbidden()
 
 
 @app.route('/verify', methods=['GET'])
