@@ -55,7 +55,7 @@ def serverTests():
 		cleanupUsers(test_name)
 		cleanupCodes(test_code)
 
-	@describe('Login')
+	@describe('Login form')
 	def login():
 
 		@beforeEach
@@ -66,9 +66,9 @@ def serverTests():
 		def _afterEach():
 			cleanupUsers(test_name)
 
-		@it('Non-existing user')
+		@it('User does not exist')
 		def noUser():
-			response = app.post('/login', data={
+			response = app.post('/login/form', data={
 				'username': 'Idontexist',
 				'password': 'lalala'
 			})
@@ -76,7 +76,7 @@ def serverTests():
 
 		@it('Existing user but bad password')
 		def badPassword():
-			response = app.post('/login', data={
+			response = app.post('/login/form', data={
 				'username': test_name,
 				'password': 'badpassword'
 			})
@@ -84,13 +84,13 @@ def serverTests():
 
 		@it('Successful login')
 		def goodLogin():
-			response = app.post('/login', data={
+			response = app.post('/login/form', data={
 				'username': test_name,
 				'password': test_pass
 			})
 			assertResponse(response, 200, 'Ok')
 
-	@describe('Verify')
+	@describe('Login basic auth')
 	def verify():
 
 		@beforeEach
@@ -101,21 +101,21 @@ def serverTests():
 		def _afterEach():
 			cleanupUsers(test_name)
 
-		@it('Verifies User')
-		def verifiesUser():
-			response = app.get('/verify', headers=headers)
+		@it('Successful login')
+		def goodLogin():
+			response = app.post('/login/basic', headers=headers)
 			assertResponse(response, 200, 'Ok')
 
 		@it('User does not exist')
 		def userDoesNotExist():
-			response = app.get(
-				'/verify', headers=authHeader('baduser', 'pass'))
+			response = app.post(
+				'/login/basic', headers=authHeader('baduser', 'pass'))
 			assertResponse(response, 403, 'Forbidden')
 
 		@it('Password does not match')
 		def passDoesNotMatch():
-			response = app.get(
-				'/verify', headers=authHeader(test_name, 'badpass'))
+			response = app.post(
+				'/login/basic', headers=authHeader(test_name, 'badpass'))
 			assertResponse(response, 403, 'Forbidden')
 
 	@describe('Add Email')

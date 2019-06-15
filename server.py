@@ -26,31 +26,26 @@ def handle_500(err):
 def getLogin():
 	return render_template('login.html');
 
-@app.route('/login', methods=['POST'])
-def userLogin():
-	user = db.getUser(request.form.get('username'))
 
-	if user is None:
-		return forbidden()
-
-	pw_hash = scrypt.hash(request.form.get('password'), user.get('pass_salt'))
-
-	if pw_hash == user.get('pass_hash'):
-		return ok()
-	else:
-		return forbidden()
+@app.route('/login/form', methods=['POST'])
+def userLoginForm():
+	return verifyLogin(request.form.get('username'), request.form.get('password'))
 
 
-@app.route('/verify', methods=['GET'])
-def verifyUser():
+@app.route('/login/basic', methods=['POST'])
+def userLoginBasic():
 	auth = request.authorization
-	user = db.getUser(auth.username)
+	return verifyLogin(auth.username, auth.password)
+
+
+def verifyLogin(username, password):
+	user = db.getUser(username)
 
 	# Return 403 instead of a 404 to make list of users harder to brute force
 	if user is None:
 		return forbidden()
 
-	pw_hash = scrypt.hash(auth.password, user.get('pass_salt'))
+	pw_hash = scrypt.hash(password, user.get('pass_salt'))
 
 	if pw_hash == user.get('pass_hash'):
 		return ok()
