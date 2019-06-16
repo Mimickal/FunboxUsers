@@ -118,6 +118,41 @@ def serverTests():
 				'/login/basic', headers=authHeader(test_name, 'badpass'))
 			assertResponse(response, 403, 'Forbidden')
 
+	@describe('Login json')
+	def loginJson():
+
+		@beforeEach
+		def _beforeEach():
+			db.addUser(test_user)
+
+		@afterEach
+		def _afterEach():
+			cleanupUsers(test_name)
+
+		@it('Successful login')
+		def goodLogin():
+			response = app.post('/login/json', json={
+				'username': test_name,
+				'password': test_pass
+			})
+			assertResponse(response, 200, 'Ok')
+
+		@it('User does not exist')
+		def userDoesNotExist():
+			response = app.post('/login/json', json={
+				'username': 'baduser',
+				'password': 'whatever man'
+			})
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Password does not match')
+		def passDoesNotMatch():
+			response = app.post('/login/json', json={
+				'username': test_name,
+				'password': 'bad password'
+			})
+			assertResponse(response, 403, 'Forbidden')
+
 	@describe('Add Email')
 	def addEmail():
 

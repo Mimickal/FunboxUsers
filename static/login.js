@@ -13,7 +13,7 @@ window.onload = function() {
 		loginBtn.disabled = true;
 
 		// TODO wrap the fetch?
-		let res = await window.fetch('./login', {
+		let res = await window.fetch('./login/json', {
 			method: 'post',
 			headers: {
 				'Content-type': 'application/json; charset=UTF-8'

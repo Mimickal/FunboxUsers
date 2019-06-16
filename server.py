@@ -39,6 +39,12 @@ def userLoginBasic():
 	return verifyLogin(auth.username, auth.password)
 
 
+@app.route('/login/json', methods=['POST'])
+def userLoginJson():
+	json = request.json
+	return verifyLogin(json['username'], json['password'])
+
+
 def verifyLogin(username, password):
 	user = db.getUser(username)
 
