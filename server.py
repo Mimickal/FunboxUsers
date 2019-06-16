@@ -29,7 +29,8 @@ def getLogin():
 
 @app.route('/login/form', methods=['POST'])
 def userLoginForm():
-	return verifyLogin(request.form.get('username'), request.form.get('password'))
+	form = request.form
+	return verifyLogin(form.get('username'), form.get('password'))
 
 
 @app.route('/login/basic', methods=['POST'])

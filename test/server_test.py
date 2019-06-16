@@ -56,7 +56,7 @@ def serverTests():
 		cleanupCodes(test_code)
 
 	@describe('Login form')
-	def login():
+	def loginForm():
 
 		@beforeEach
 		def _beforeEach():
@@ -91,7 +91,7 @@ def serverTests():
 			assertResponse(response, 200, 'Ok')
 
 	@describe('Login basic auth')
-	def verify():
+	def loginBasic():
 
 		@beforeEach
 		def _beforeEach():
