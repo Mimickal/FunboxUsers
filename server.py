@@ -4,13 +4,26 @@ import re
 from subprocess import Popen, PIPE
 from random import choice
 from string import ascii_letters, digits
+import os
 
 import db
 
-app = Flask('Funbox Accounts')
 EMAIL_VALIDATOR = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
 CODE_VALIDATOR = re.compile(r'^(\w{8})$')
 CODE_SIZE = 8
+SECRET_SIZE = 32
+
+app = Flask('Funbox Accounts')
+
+# TODO better place to put this?
+# TODO also, maybe pull this out to a utility we can test?
+with open('secret.key', 'rb+') as secretFile:
+	secret = secretFile.read()
+	if not secret:
+		secret = os.urandom(SECRET_SIZE)
+		secretFile.write(secret)
+	app.secret_key = secret
+
 
 @app.errorhandler(404)
 @app.errorhandler(405)
