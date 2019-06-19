@@ -1,4 +1,5 @@
 from flask import Flask, request, render_template
+from flask_wtf.csrf import CSRFProtect, generate_csrf, validate_csrf
 import scrypt
 import re
 from subprocess import Popen, PIPE
@@ -14,6 +15,7 @@ CODE_SIZE = 8
 SECRET_SIZE = 32
 
 app = Flask('Funbox Accounts')
+csrf = CSRFProtect(app)
 
 # TODO better place to put this?
 # TODO also, maybe pull this out to a utility we can test?
