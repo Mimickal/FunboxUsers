@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template
-from flask_wtf.csrf import CSRFProtect, generate_csrf, validate_csrf
+from flask_wtf.csrf import CSRFProtect, generate_csrf, validate_csrf, CSRFError
 import scrypt
 import re
 from subprocess import Popen, PIPE
@@ -35,6 +35,11 @@ def handle_generic(err):
 @app.errorhandler(500)
 def handle_500(err):
 	return 'Internal server error', 500
+
+@app.errorhandler(CSRFError)
+def handle_CSRFError(err):
+	# TODO log the real error probably
+	return 'Session expired. Reload and try again', 400
 
 
 @app.route('/login', methods=['GET'])
