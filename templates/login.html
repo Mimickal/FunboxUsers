@@ -11,6 +11,8 @@
 <body>
 	<form class="fb-pane" method="post">
 		<h1>Funbox Login</h1>
+		<!-- TODO test CSRF with old-school style form POST -->
+		<input id="csrf" type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 		<input id="user" type="text" name="username" placeholder="Username"/>
 		<input id="pass" type="password" name="password" placeholder="Password"/>
 		<div id="issue" class="issue"></div>
