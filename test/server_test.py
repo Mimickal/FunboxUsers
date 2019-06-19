@@ -55,8 +55,8 @@ def serverTests():
 		cleanupUsers(test_name)
 		cleanupCodes(test_code)
 
-	@describe('Verify')
-	def verify():
+	@describe('Login form')
+	def loginForm():
 
 		@beforeEach
 		def _beforeEach():
@@ -66,21 +66,91 @@ def serverTests():
 		def _afterEach():
 			cleanupUsers(test_name)
 
-		@it('Verifies User')
-		def verifiesUser():
-			response = app.get('/verify', headers=headers)
+		@it('User does not exist')
+		def noUser():
+			response = app.post('/login/form', data={
+				'username': 'Idontexist',
+				'password': 'lalala'
+			})
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Existing user but bad password')
+		def badPassword():
+			response = app.post('/login/form', data={
+				'username': test_name,
+				'password': 'badpassword'
+			})
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Successful login')
+		def goodLogin():
+			response = app.post('/login/form', data={
+				'username': test_name,
+				'password': test_pass
+			})
+			assertResponse(response, 200, 'Ok')
+
+	@describe('Login basic auth')
+	def loginBasic():
+
+		@beforeEach
+		def _beforeEach():
+			db.addUser(test_user)
+
+		@afterEach
+		def _afterEach():
+			cleanupUsers(test_name)
+
+		@it('Successful login')
+		def goodLogin():
+			response = app.post('/login/basic', headers=headers)
 			assertResponse(response, 200, 'Ok')
 
 		@it('User does not exist')
 		def userDoesNotExist():
-			response = app.get(
-				'/verify', headers=authHeader('baduser', 'pass'))
+			response = app.post(
+				'/login/basic', headers=authHeader('baduser', 'pass'))
 			assertResponse(response, 403, 'Forbidden')
 
 		@it('Password does not match')
 		def passDoesNotMatch():
-			response = app.get(
-				'/verify', headers=authHeader(test_name, 'badpass'))
+			response = app.post(
+				'/login/basic', headers=authHeader(test_name, 'badpass'))
+			assertResponse(response, 403, 'Forbidden')
+
+	@describe('Login json')
+	def loginJson():
+
+		@beforeEach
+		def _beforeEach():
+			db.addUser(test_user)
+
+		@afterEach
+		def _afterEach():
+			cleanupUsers(test_name)
+
+		@it('Successful login')
+		def goodLogin():
+			response = app.post('/login/json', json={
+				'username': test_name,
+				'password': test_pass
+			})
+			assertResponse(response, 200, 'Ok')
+
+		@it('User does not exist')
+		def userDoesNotExist():
+			response = app.post('/login/json', json={
+				'username': 'baduser',
+				'password': 'whatever man'
+			})
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Password does not match')
+		def passDoesNotMatch():
+			response = app.post('/login/json', json={
+				'username': test_name,
+				'password': 'bad password'
+			})
 			assertResponse(response, 403, 'Forbidden')
 
 	@describe('Add Email')

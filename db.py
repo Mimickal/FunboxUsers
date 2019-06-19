@@ -5,7 +5,10 @@ CODE_TYPE_EMAIL = 'email'
 
 # Connect to DB and setup tables, if necessary
 DB_NAME = 'fbusers.db'
-DB_CONN = sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_COLNAMES)
+DB_CONN = sqlite3.connect(DB_NAME,
+	detect_types=sqlite3.PARSE_COLNAMES,
+	check_same_thread=False #TODO this might be a terrible idea
+)
 
 SETUP_SCRIPT = open('dbsetup.sql').read()
 DB_CONN.executescript(SETUP_SCRIPT)

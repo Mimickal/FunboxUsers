@@ -1,0 +1,115 @@
+@font-face {
+	font-family: sf-square-head;
+	src: url(SFSquareHead.ttf);
+}
+@font-face {
+	font-family: orbitron;
+	src: url(orbitron-light.otf);
+}
+
+@keyframes spin {
+	from { transform:rotate(0deg); }
+	to { transform:rotate(360deg); }
+}
+.spinner {
+	background-image: url('err.svg');
+	animation-name: spin;
+	animation-duration: 1000ms;
+	animation-iteration-count: infinite;
+	animation-timing-function: linear;
+	
+	/* FIXME: This is awful, do we really need to hard code this? */
+	width: 63px;
+	height: 65px;
+}
+.fb-pane {
+	border: 3px solid #FF47EB;
+	display: inline-block;
+	padding: 20px;
+	color: #00E2FF;
+	font: 12pt orbitron;
+	letter-spacing: 0.1em;
+}
+.grid-container {
+	display: grid;
+	grid-template-columns: auto auto auto;
+	grid-gap: 20px;
+}
+.grid-label {
+	text-align: right;
+	color: #FF47EB;
+}
+/* Anchor to prevent the right column from 
+   disappearing entirely without content*/
+.grid-blank { width: 100px; }
+.issue {
+	outline: 4px solid #E1464B;
+	color: #E1464B;
+	margin-bottom: 10px;
+	padding: 5px;
+}
+.issue-text { color: #E1464B; }
+.inline { float: left; }
+a { font: 10pt orbitron; }
+h1 {
+	color: #00E2FF;
+	font: 20pt orbitron;
+	margin-top: 0px;
+	text-align: center;
+}
+input {
+	border: 2px solid;
+	margin-bottom: 20px;
+	font: 12pt orbitron;
+	border-color: #00E2FF;
+	color: #00E2FF;
+	display: block;
+}
+input:disabled {
+	border-color: gray;
+	color: gray;
+}
+button {
+	border: 2px solid;
+	border-radius: 8px;
+	font: 12pt orbitron;
+	background: none;
+	padding-bottom: 2px;
+	border-color: #00E2FF;
+	color: #00E2FF;
+}
+button:hover:enabled { background: #D5FAFF; }
+button:active:emabled { background: #005E6A; }
+button:disabled {
+	background: gray;
+	border-color: lightgray;
+	color: lightgray;
+}
+
+::placeholder { color: gray; }
+
+.blue {
+	border-color: #00E2FF;
+	color: #00E2FF;
+}
+
+.green {
+	border-color: #00DD00;
+	color: #00DD00;
+}
+button.green:hover:enabled { background: #D7FFD7; }
+button.green:active:enabled { background: #005000; }
+
+.yellow {
+	border-color: #B3A204;
+	color: #B3A204;
+}
+button.yellow:hover:enabled { background: #FAE634; }
+button.yellow:active:enabled { background: #4F4702; }
+
+.red {
+	border-color: #E1464B;
+	color: #E1464B;
+}
+button.red:hover:enabled { background: #FBE1E2; }
+button.red:active:enabled { background: #4F0F0F; }
