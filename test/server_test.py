@@ -98,6 +98,14 @@ def serverTests():
 			})
 			assertResponse(response, 200, 'Ok')
 
+		@it('Missing CSRF token')
+		def missingCSRFToken():
+			response = app.post('/login/form', data={
+				'username': test_name,
+				'password': test_pass
+			})
+			assertResponse(response, 400, 'Session expired. Reload and try again')
+
 	@describe('Login basic auth')
 	def loginBasic():
 
@@ -170,6 +178,14 @@ def serverTests():
 				}
 			)
 			assertResponse(response, 403, 'Forbidden')
+
+		@it('Missing CSRF token')
+		def missingCSRFToken():
+			response = app.post('/login/json', json={
+				'username': test_name,
+				'password': test_pass
+			})
+			assertResponse(response, 400, 'Session expired. Reload and try again')
 
 	@describe('Add Email')
 	def addEmail():
