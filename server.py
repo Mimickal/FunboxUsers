@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template
-from flask_wtf.csrf import CSRFProtect, generate_csrf, validate_csrf, CSRFError
+from flask_wtf.csrf import CSRFProtect, CSRFError
 import scrypt
 import re
 from subprocess import Popen, PIPE
@@ -17,6 +17,7 @@ CODE_SIZE = 8
 app = Flask('Funbox Accounts')
 app.secret_key = util.getSecretKey('secret.key')
 csrf = CSRFProtect(app)
+app.config['WTF_CSRF_ENABLED'] = False
 
 
 @app.errorhandler(404)
@@ -36,11 +37,13 @@ def handle_CSRFError(err):
 
 @app.route('/login', methods=['GET'])
 def getLogin():
+	csrf.protect()
 	return render_template('login.html');
 
 
 @app.route('/login/form', methods=['POST'])
 def userLoginForm():
+	csrf.protect()
 	form = request.form
 	return verifyLogin(form.get('username'), form.get('password'))
 
@@ -53,6 +56,7 @@ def userLoginBasic():
 
 @app.route('/login/json', methods=['POST'])
 def userLoginJson():
+	csrf.protect()
 	json = request.json
 	return verifyLogin(json['username'], json['password'])
 
