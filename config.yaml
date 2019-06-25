@@ -1,0 +1,28 @@
+# Funbox Users config
+---
+# Hostname the server listens on.
+# If proxying through Apache, this should probably be '127.0.0.1'.
+# Set to '0.0.0.0' to make publicly available (note: DO NOT FUCKING DO THIS)
+host: '127.0.0.1'
+port: 5000
+
+# This should probably stay disabled
+debug: false
+
+# Not yet implemented
+allowed_failed_logins: 8
+
+# Not yet implemented
+log:
+  level: info
+  file: dev.log
+  size: 50MB
+  keep: 10
+  #format: '' # Not sure if this is even reasonable
+
+# Not implemented since we're proxying through Apache.
+# It might be fun to implement this in the future \_('_')_/
+https:
+  enabled: false
+  cert_file: null
+  key_file: null
