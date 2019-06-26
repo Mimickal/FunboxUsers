@@ -5,7 +5,7 @@ import re
 from subprocess import Popen, PIPE
 from random import choice
 from string import ascii_letters, digits
-import os
+import yaml
 
 import db
 import util
@@ -16,6 +16,7 @@ CODE_SIZE = 8
 
 app = Flask('Funbox Accounts')
 app.secret_key = util.getSecretKey('secret.key')
+config = yaml.safe_load(open('config.yaml'))
 csrf = CSRFProtect(app)
 app.config['WTF_CSRF_ENABLED'] = False
 
@@ -154,5 +155,5 @@ def sendmail(email, subject, message):
 
 
 if __name__ == '__main__':
-	app.run()
+	app.run(host=config['host'], port=config['port'], debug=config['debug'])
 
