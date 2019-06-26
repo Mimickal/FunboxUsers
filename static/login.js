@@ -1,4 +1,5 @@
 window.onload = function() {
+	var csrfInput = document.getElementById('csrf');
 	var userInput = document.getElementById('user');
 	var passInput = document.getElementById('pass');
 	var loginBtn = document.getElementById('login');
@@ -16,7 +17,8 @@ window.onload = function() {
 		let res = await window.fetch('./login/json', {
 			method: 'post',
 			headers: {
-				'Content-type': 'application/json; charset=UTF-8'
+				'Content-type': 'application/json; charset=UTF-8',
+				'X-CSRFToken': csrfInput.value
 			},
 			body: JSON.stringify({
 				username: userInput.value,

@@ -41,7 +41,6 @@ def serverTests():
 	test_code = 'Test1234'
 	test_email = 'test@email.com'
 	salt = 'saltything'
-	headers = authHeader(test_name, test_pass)
 	test_user = {
 		'name': test_name,
 		'pass_salt': salt,
@@ -49,6 +48,12 @@ def serverTests():
 	}
 
 	test_id = None
+
+	# This is kind of awful but it works!
+	def getLoginCSRFToken():
+		login = app.get('/login')
+		token = re.search(b'name="csrf_token" value="(.*)"', login.data)
+		return token.group(1).decode('utf-8')
 
 	@before
 	def _beforeAll():
@@ -69,6 +74,7 @@ def serverTests():
 		@it('User does not exist')
 		def noUser():
 			response = app.post('/login/form', data={
+				'csrf_token': getLoginCSRFToken(),
 				'username': 'Idontexist',
 				'password': 'lalala'
 			})
@@ -77,6 +83,7 @@ def serverTests():
 		@it('Existing user but bad password')
 		def badPassword():
 			response = app.post('/login/form', data={
+				'csrf_token': getLoginCSRFToken(),
 				'username': test_name,
 				'password': 'badpassword'
 			})
@@ -85,10 +92,19 @@ def serverTests():
 		@it('Successful login')
 		def goodLogin():
 			response = app.post('/login/form', data={
+				'csrf_token': getLoginCSRFToken(),
 				'username': test_name,
 				'password': test_pass
 			})
 			assertResponse(response, 200, 'Ok')
+
+		@it('Missing CSRF token')
+		def missingCSRFToken():
+			response = app.post('/login/form', data={
+				'username': test_name,
+				'password': test_pass
+			})
+			assertResponse(response, 400, 'Session expired. Reload and try again')
 
 	@describe('Login basic auth')
 	def loginBasic():
@@ -103,19 +119,20 @@ def serverTests():
 
 		@it('Successful login')
 		def goodLogin():
+			headers = authHeader(test_name, test_pass)
 			response = app.post('/login/basic', headers=headers)
 			assertResponse(response, 200, 'Ok')
 
 		@it('User does not exist')
 		def userDoesNotExist():
-			response = app.post(
-				'/login/basic', headers=authHeader('baduser', 'pass'))
+			headers = authHeader('baduser', 'pass')
+			response = app.post('/login/basic', headers=headers)
 			assertResponse(response, 403, 'Forbidden')
 
 		@it('Password does not match')
 		def passDoesNotMatch():
-			response = app.post(
-				'/login/basic', headers=authHeader(test_name, 'badpass'))
+			headers = authHeader(test_name, 'badpass')
+			response = app.post('/login/basic', headers=headers)
 			assertResponse(response, 403, 'Forbidden')
 
 	@describe('Login json')
@@ -131,27 +148,44 @@ def serverTests():
 
 		@it('Successful login')
 		def goodLogin():
-			response = app.post('/login/json', json={
-				'username': test_name,
-				'password': test_pass
-			})
+			response = app.post('/login/json',
+				headers={ 'X-CSRFToken': getLoginCSRFToken() },
+				json={
+					'username': test_name,
+					'password': test_pass
+				}
+			)
 			assertResponse(response, 200, 'Ok')
 
 		@it('User does not exist')
 		def userDoesNotExist():
-			response = app.post('/login/json', json={
-				'username': 'baduser',
-				'password': 'whatever man'
-			})
+			response = app.post('/login/json',
+				headers={ 'X-CSRFToken': getLoginCSRFToken() },
+				json={
+					'username': 'baduser',
+					'password': 'whatever man'
+				}
+			)
 			assertResponse(response, 403, 'Forbidden')
 
 		@it('Password does not match')
 		def passDoesNotMatch():
+			response = app.post('/login/json',
+				headers={ 'X-CSRFToken': getLoginCSRFToken() },
+				json={
+					'username': test_name,
+					'password': 'bad password'
+				}
+			)
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Missing CSRF token')
+		def missingCSRFToken():
 			response = app.post('/login/json', json={
 				'username': test_name,
-				'password': 'bad password'
+				'password': test_pass
 			})
-			assertResponse(response, 403, 'Forbidden')
+			assertResponse(response, 400, 'Session expired. Reload and try again')
 
 	@describe('Add Email')
 	def addEmail():
@@ -167,32 +201,36 @@ def serverTests():
 
 		@it('User does not exist')
 		def userDoesNotExist():
-			response = app.put(
-				'/update/email',
+			response = app.put('/update/email',
 				headers=authHeader('baduser', 'pass'),
-				data='example@email.com')
+				data='example@email.com'
+			)
 			assertResponse(response, 403, 'Forbidden')
 
 		@it('Password does not match')
 		def passDoesNotMatch():
-			response = app.put(
-				'/update/email',
+			response = app.put('/update/email',
 				headers=authHeader(test_name, 'badpass'),
-				data='example@email.com')
+				data='example@email.com'
+			)
 			assertResponse(response, 403, 'Forbidden')
 
 		@it('Invalid email')
 		def emailInvalid():
-			response = app.put(
-				'/update/email', headers=headers, data='bademail')
+			response = app.put('/update/email',
+				headers=authHeader(test_name, test_pass),
+				data='bademail'
+			)
 			assertResponse(response, 400, 'Invalid email')
 
 		@it('Code added')
 		@patch('server.sendmail')
 		def codeAdded(mock_emailer):
 			email = 'new@email.com'
-			response = app.put(
-				'/update/email', headers=headers, data=email)
+			response = app.put('/update/email',
+				headers=authHeader(test_name, test_pass),
+				data=email
+			)
 			assertResponse(response, 200, 'Ok')
 
 			args = mock_emailer.call_args[0]

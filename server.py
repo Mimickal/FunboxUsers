@@ -1,16 +1,24 @@
 from flask import Flask, request, render_template
+from flask_wtf.csrf import CSRFProtect, CSRFError
 import scrypt
 import re
 from subprocess import Popen, PIPE
 from random import choice
 from string import ascii_letters, digits
+import os
 
 import db
+import util
 
-app = Flask('Funbox Accounts')
 EMAIL_VALIDATOR = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
 CODE_VALIDATOR = re.compile(r'^(\w{8})$')
 CODE_SIZE = 8
+
+app = Flask('Funbox Accounts')
+app.secret_key = util.getSecretKey('secret.key')
+csrf = CSRFProtect(app)
+app.config['WTF_CSRF_ENABLED'] = False
+
 
 @app.errorhandler(404)
 @app.errorhandler(405)
@@ -21,14 +29,21 @@ def handle_generic(err):
 def handle_500(err):
 	return 'Internal server error', 500
 
+@app.errorhandler(CSRFError)
+def handle_CSRFError(err):
+	# TODO log the real error probably
+	return 'Session expired. Reload and try again', 400
+
 
 @app.route('/login', methods=['GET'])
 def getLogin():
+	csrf.protect()
 	return render_template('login.html');
 
 
 @app.route('/login/form', methods=['POST'])
 def userLoginForm():
+	csrf.protect()
 	form = request.form
 	return verifyLogin(form.get('username'), form.get('password'))
 
@@ -41,6 +56,7 @@ def userLoginBasic():
 
 @app.route('/login/json', methods=['POST'])
 def userLoginJson():
+	csrf.protect()
 	json = request.json
 	return verifyLogin(json['username'], json['password'])
 
