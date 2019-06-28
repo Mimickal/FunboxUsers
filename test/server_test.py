@@ -112,6 +112,20 @@ def serverTests():
 			})
 			assertResponse(response, 400, 'Session expired. Reload and try again')
 
+		@it('Empty body')
+		def emptyBody():
+			res1 = app.post('/login/form')
+			res2 = app.post('/login/form', data={})
+			res3 = app.post('/login/form', json={})
+			assertResponse(res1, 400, 'Session expired. Reload and try again')
+			assertResponse(res2, 400, 'Session expired. Reload and try again')
+			assertResponse(res3, 400, 'Session expired. Reload and try again')
+
+		@it('Non-json body')
+		def incorrectData():
+			res = app.post('/login/form', data='I am not json')
+			assertResponse(res, 400, 'Session expired. Reload and try again')
+
 		@it('Hitting rate limit')
 		def rateLimit():
 			enableRateLimiter(True)
@@ -155,6 +169,13 @@ def serverTests():
 			headers = authHeader(test_name, 'badpass')
 			response = app.post('/login/basic', headers=headers)
 			assertResponse(response, 403, 'Forbidden')
+
+		@it('Empty auth')
+		def emptyBody():
+			res1 = app.post('/login/form')
+			res2 = app.post('/login/form', headers={})
+			assertResponse(res1, 400, 'Session expired. Reload and try again')
+			assertResponse(res2, 400, 'Session expired. Reload and try again')
 
 		@it('Hitting rate limit')
 		def rateLimit():
@@ -218,6 +239,22 @@ def serverTests():
 				'password': test_pass
 			})
 			assertResponse(response, 400, 'Session expired. Reload and try again')
+
+		@it('Empty body')
+		def emptyBody():
+			headers = { 'X-CSRFToken': getLoginCSRFToken() }
+			res1 = app.post('/login/form', headers=headers)
+			res2 = app.post('/login/form', headers=headers, data={})
+			res3 = app.post('/login/form', headers=headers, json={})
+			assertResponse(res1, 403, 'Forbidden')
+			assertResponse(res2, 403, 'Forbidden')
+			assertResponse(res3, 403, 'Forbidden')
+
+		@it('Non-json body')
+		def incorrectData():
+			headers = { 'X-CSRFToken': getLoginCSRFToken() }
+			res = app.post('/login/form', headers=headers, data='I am not json')
+			assertResponse(res, 403, 'Forbidden')
 
 		@it('Hitting rate limit')
 		def rateLimit():
