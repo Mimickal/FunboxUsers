@@ -5,7 +5,7 @@ import scrypt
 from base64 import b64encode
 import re
 
-from server import app as server_app, makeUniqueCode
+from server import app as server_app, makeUniqueCode, limiter
 import db
 
 def authHeader(username, password):
@@ -55,10 +55,15 @@ def serverTests():
 		token = re.search(b'name="csrf_token" value="(.*)"', login.data)
 		return token.group(1).decode('utf-8')
 
+	def enableRateLimiter(is_enabled):
+		limiter.reset()
+		limiter.enabled = is_enabled
+
 	@before
 	def _beforeAll():
 		cleanupUsers(test_name)
 		cleanupCodes(test_code)
+		enableRateLimiter(False)
 
 	@describe('Login form')
 	def loginForm():
@@ -66,6 +71,7 @@ def serverTests():
 		@beforeEach
 		def _beforeEach():
 			db.addUser(test_user)
+			enableRateLimiter(False)
 
 		@afterEach
 		def _afterEach():
@@ -106,12 +112,27 @@ def serverTests():
 			})
 			assertResponse(response, 400, 'Session expired. Reload and try again')
 
+		@it('Hitting rate limit')
+		def rateLimit():
+			enableRateLimiter(True)
+			data = {
+				'csrf_token': getLoginCSRFToken(),
+				'username': test_name,
+				'password': test_pass
+			}
+			for i in range(0, 10):
+				res = app.post('/login/form', data=data)
+				assertResponse(res, 200, 'Ok')
+			res = app.post('/login/form', data=data)
+			assertResponse(res, 429, 'Too many requests')
+
 	@describe('Login basic auth')
 	def loginBasic():
 
 		@beforeEach
 		def _beforeEach():
 			db.addUser(test_user)
+			enableRateLimiter(False)
 
 		@afterEach
 		def _afterEach():
@@ -135,12 +156,23 @@ def serverTests():
 			response = app.post('/login/basic', headers=headers)
 			assertResponse(response, 403, 'Forbidden')
 
+		@it('Hitting rate limit')
+		def rateLimit():
+			enableRateLimiter(True)
+			headers = authHeader(test_name, test_pass)
+			for i in range(0, 10):
+				res = app.post('/login/basic', headers=headers)
+				assertResponse(res, 200, 'Ok')
+			res = app.post('/login/basic', headers=headers)
+			assertResponse(res, 429, 'Too many requests')
+
 	@describe('Login json')
 	def loginJson():
 
 		@beforeEach
 		def _beforeEach():
 			db.addUser(test_user)
+			enableRateLimiter(False)
 
 		@afterEach
 		def _afterEach():
@@ -186,6 +218,20 @@ def serverTests():
 				'password': test_pass
 			})
 			assertResponse(response, 400, 'Session expired. Reload and try again')
+
+		@it('Hitting rate limit')
+		def rateLimit():
+			enableRateLimiter(True)
+			headers = { 'X-CSRFToken': getLoginCSRFToken() }
+			json = {
+				'username': test_name,
+				'password': test_pass
+			}
+			for i in range(0, 10):
+				res = app.post('/login/json', headers=headers, json=json)
+				assertResponse(res, 200, 'Ok')
+			res = app.post('/login/json', headers=headers, json=json)
+			assertResponse(res, 429, 'Too many requests')
 
 	@describe('Add Email')
 	def addEmail():
