@@ -15,9 +15,9 @@ def authHeader(username, password):
 		).decode('utf-8')
 	}
 
-def assertResponse(response, code, text):
-	assert_that(response.status_code, equal_to(code))
-	assert_that(response.get_data(as_text=True), equal_to(text))
+def assertResponse(response, code, text, desc=None):
+	assert_that(response.status_code, equal_to(code), desc)
+	assert_that(response.get_data(as_text=True), equal_to(text), desc)
 
 # TODO Pocha doesn't currently support applying afterEach to nested
 # describe blocks, so we need this as a work-around for now.
@@ -134,9 +134,11 @@ def serverTests():
 				'username': test_name,
 				'password': test_pass
 			}
-			for i in range(0, 10):
+			for i in range(10):
 				res = app.post('/login/form', data=data)
-				assertResponse(res, 200, 'Ok')
+				assertResponse(res, 200, 'Ok',
+					'Prematurely hit limit at %d/%d requests' % (i + 1, 10)
+				)
 			res = app.post('/login/form', data=data)
 			assertResponse(res, 429, 'Too many requests')
 
@@ -181,9 +183,11 @@ def serverTests():
 		def rateLimit():
 			enableRateLimiter(True)
 			headers = authHeader(test_name, test_pass)
-			for i in range(0, 10):
+			for i in range(10):
 				res = app.post('/login/basic', headers=headers)
-				assertResponse(res, 200, 'Ok')
+				assertResponse(res, 200, 'Ok',
+					'Prematurely hit limit at %d/%d requests' % (i + 1, 10)
+				)
 			res = app.post('/login/basic', headers=headers)
 			assertResponse(res, 429, 'Too many requests')
 
@@ -264,9 +268,11 @@ def serverTests():
 				'username': test_name,
 				'password': test_pass
 			}
-			for i in range(0, 10):
+			for i in range(10):
 				res = app.post('/login/json', headers=headers, json=json)
-				assertResponse(res, 200, 'Ok')
+				assertResponse(res, 200, 'Ok',
+					'Prematurely hit limit at %d/%d requests' % (i + 1, 10)
+				)
 			res = app.post('/login/json', headers=headers, json=json)
 			assertResponse(res, 429, 'Too many requests')
 
