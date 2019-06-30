@@ -4,6 +4,7 @@ from unittest.mock import patch
 import scrypt
 from base64 import b64encode
 import re
+import yaml
 
 from server import app as server_app, makeUniqueCode, limiter
 import db
@@ -33,6 +34,9 @@ def cleanupCodes(code):
 
 @describe('Server Tests')
 def serverTests():
+
+	config = yaml.safe_load(open('config.yaml'))
+	rate_login = int(re.search('(\d+)', config['rate_login']).group(1))
 
 	server_app.config['TESTING'] = True
 	app = server_app.test_client()
@@ -134,10 +138,10 @@ def serverTests():
 				'username': test_name,
 				'password': test_pass
 			}
-			for i in range(10):
+			for i in range(rate_login):
 				res = app.post('/login/form', data=data)
 				assertResponse(res, 200, 'Ok',
-					'Prematurely hit limit at %d/%d requests' % (i + 1, 10)
+					'Prematurely hit limit at %d/%d requests' % (i + 1, rate_login)
 				)
 			res = app.post('/login/form', data=data)
 			assertResponse(res, 429, 'Too many requests')
@@ -183,10 +187,10 @@ def serverTests():
 		def rateLimit():
 			enableRateLimiter(True)
 			headers = authHeader(test_name, test_pass)
-			for i in range(10):
+			for i in range(rate_login):
 				res = app.post('/login/basic', headers=headers)
 				assertResponse(res, 200, 'Ok',
-					'Prematurely hit limit at %d/%d requests' % (i + 1, 10)
+					'Prematurely hit limit at %d/%d requests' % (i + 1, rate_login)
 				)
 			res = app.post('/login/basic', headers=headers)
 			assertResponse(res, 429, 'Too many requests')
@@ -268,10 +272,10 @@ def serverTests():
 				'username': test_name,
 				'password': test_pass
 			}
-			for i in range(10):
+			for i in range(rate_login):
 				res = app.post('/login/json', headers=headers, json=json)
 				assertResponse(res, 200, 'Ok',
-					'Prematurely hit limit at %d/%d requests' % (i + 1, 10)
+					'Prematurely hit limit at %d/%d requests' % (i + 1, rate_login)
 				)
 			res = app.post('/login/json', headers=headers, json=json)
 			assertResponse(res, 429, 'Too many requests')
