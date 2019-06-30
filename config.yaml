@@ -9,8 +9,8 @@ port: 5000
 # This should probably stay disabled
 debug: false
 
-# Not yet implemented
-allowed_failed_logins: 8
+# See https://flask-limiter.readthedocs.io/en/stable/#ratelimit-string
+rate_login: '10/hour;100/day'
 
 # Not yet implemented
 log:

@@ -6,6 +6,8 @@ from subprocess import Popen, PIPE
 from random import choice
 from string import ascii_letters, digits
 import yaml
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 import db
 import util
@@ -16,15 +18,24 @@ CODE_SIZE = 8
 
 app = Flask('Funbox Accounts')
 app.secret_key = util.getSecretKey('secret.key')
+
 config = yaml.safe_load(open('config.yaml'))
+
 csrf = CSRFProtect(app)
 app.config['WTF_CSRF_ENABLED'] = False
+
+limiter = Limiter(app, key_func=get_remote_address)
+login_limit = limiter.shared_limit(config['rate_login'], scope='login')
 
 
 @app.errorhandler(404)
 @app.errorhandler(405)
 def handle_generic(err):
 	return forbidden()
+
+@app.errorhandler(429)
+def handle_tooManyRequests(err):
+	return 'Too many requests', 429
 
 @app.errorhandler(500)
 def handle_500(err):
@@ -42,6 +53,7 @@ def getLogin():
 	return render_template('login.html');
 
 
+@login_limit
 @app.route('/login/form', methods=['POST'])
 def userLoginForm():
 	csrf.protect()
@@ -49,12 +61,14 @@ def userLoginForm():
 	return verifyLogin(form.get('username'), form.get('password'))
 
 
+@login_limit
 @app.route('/login/basic', methods=['POST'])
 def userLoginBasic():
 	auth = request.authorization
 	return verifyLogin(auth.username, auth.password)
 
 
+@login_limit
 @app.route('/login/json', methods=['POST'])
 def userLoginJson():
 	csrf.protect()

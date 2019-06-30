@@ -4,8 +4,9 @@ from unittest.mock import patch
 import scrypt
 from base64 import b64encode
 import re
+import yaml
 
-from server import app as server_app, makeUniqueCode
+from server import app as server_app, makeUniqueCode, limiter
 import db
 
 def authHeader(username, password):
@@ -15,9 +16,9 @@ def authHeader(username, password):
 		).decode('utf-8')
 	}
 
-def assertResponse(response, code, text):
-	assert_that(response.status_code, equal_to(code))
-	assert_that(response.get_data(as_text=True), equal_to(text))
+def assertResponse(response, code, text, desc=None):
+	assert_that(response.status_code, equal_to(code), desc)
+	assert_that(response.get_data(as_text=True), equal_to(text), desc)
 
 # TODO Pocha doesn't currently support applying afterEach to nested
 # describe blocks, so we need this as a work-around for now.
@@ -33,6 +34,9 @@ def cleanupCodes(code):
 
 @describe('Server Tests')
 def serverTests():
+
+	config = yaml.safe_load(open('config.yaml'))
+	rate_login = int(re.search('(\d+)', config['rate_login']).group(1))
 
 	server_app.config['TESTING'] = True
 	app = server_app.test_client()
@@ -55,10 +59,15 @@ def serverTests():
 		token = re.search(b'name="csrf_token" value="(.*)"', login.data)
 		return token.group(1).decode('utf-8')
 
+	def enableRateLimiter(is_enabled):
+		limiter.reset()
+		limiter.enabled = is_enabled
+
 	@before
 	def _beforeAll():
 		cleanupUsers(test_name)
 		cleanupCodes(test_code)
+		enableRateLimiter(False)
 
 	@describe('Login form')
 	def loginForm():
@@ -66,6 +75,7 @@ def serverTests():
 		@beforeEach
 		def _beforeEach():
 			db.addUser(test_user)
+			enableRateLimiter(False)
 
 		@afterEach
 		def _afterEach():
@@ -106,12 +116,43 @@ def serverTests():
 			})
 			assertResponse(response, 400, 'Session expired. Reload and try again')
 
+		@it('Empty body')
+		def emptyBody():
+			res1 = app.post('/login/form')
+			res2 = app.post('/login/form', data={})
+			res3 = app.post('/login/form', json={})
+			assertResponse(res1, 400, 'Session expired. Reload and try again')
+			assertResponse(res2, 400, 'Session expired. Reload and try again')
+			assertResponse(res3, 400, 'Session expired. Reload and try again')
+
+		@it('Non-json body')
+		def incorrectData():
+			res = app.post('/login/form', data='I am not json')
+			assertResponse(res, 400, 'Session expired. Reload and try again')
+
+		@it('Hitting rate limit')
+		def rateLimit():
+			enableRateLimiter(True)
+			data = {
+				'csrf_token': getLoginCSRFToken(),
+				'username': test_name,
+				'password': test_pass
+			}
+			for i in range(rate_login):
+				res = app.post('/login/form', data=data)
+				assertResponse(res, 200, 'Ok',
+					'Prematurely hit limit at %d/%d requests' % (i + 1, rate_login)
+				)
+			res = app.post('/login/form', data=data)
+			assertResponse(res, 429, 'Too many requests')
+
 	@describe('Login basic auth')
 	def loginBasic():
 
 		@beforeEach
 		def _beforeEach():
 			db.addUser(test_user)
+			enableRateLimiter(False)
 
 		@afterEach
 		def _afterEach():
@@ -135,12 +176,32 @@ def serverTests():
 			response = app.post('/login/basic', headers=headers)
 			assertResponse(response, 403, 'Forbidden')
 
+		@it('Empty auth')
+		def emptyBody():
+			res1 = app.post('/login/form')
+			res2 = app.post('/login/form', headers={})
+			assertResponse(res1, 400, 'Session expired. Reload and try again')
+			assertResponse(res2, 400, 'Session expired. Reload and try again')
+
+		@it('Hitting rate limit')
+		def rateLimit():
+			enableRateLimiter(True)
+			headers = authHeader(test_name, test_pass)
+			for i in range(rate_login):
+				res = app.post('/login/basic', headers=headers)
+				assertResponse(res, 200, 'Ok',
+					'Prematurely hit limit at %d/%d requests' % (i + 1, rate_login)
+				)
+			res = app.post('/login/basic', headers=headers)
+			assertResponse(res, 429, 'Too many requests')
+
 	@describe('Login json')
 	def loginJson():
 
 		@beforeEach
 		def _beforeEach():
 			db.addUser(test_user)
+			enableRateLimiter(False)
 
 		@afterEach
 		def _afterEach():
@@ -186,6 +247,38 @@ def serverTests():
 				'password': test_pass
 			})
 			assertResponse(response, 400, 'Session expired. Reload and try again')
+
+		@it('Empty body')
+		def emptyBody():
+			headers = { 'X-CSRFToken': getLoginCSRFToken() }
+			res1 = app.post('/login/form', headers=headers)
+			res2 = app.post('/login/form', headers=headers, data={})
+			res3 = app.post('/login/form', headers=headers, json={})
+			assertResponse(res1, 403, 'Forbidden')
+			assertResponse(res2, 403, 'Forbidden')
+			assertResponse(res3, 403, 'Forbidden')
+
+		@it('Non-json body')
+		def incorrectData():
+			headers = { 'X-CSRFToken': getLoginCSRFToken() }
+			res = app.post('/login/form', headers=headers, data='I am not json')
+			assertResponse(res, 403, 'Forbidden')
+
+		@it('Hitting rate limit')
+		def rateLimit():
+			enableRateLimiter(True)
+			headers = { 'X-CSRFToken': getLoginCSRFToken() }
+			json = {
+				'username': test_name,
+				'password': test_pass
+			}
+			for i in range(rate_login):
+				res = app.post('/login/json', headers=headers, json=json)
+				assertResponse(res, 200, 'Ok',
+					'Prematurely hit limit at %d/%d requests' % (i + 1, rate_login)
+				)
+			res = app.post('/login/json', headers=headers, json=json)
+			assertResponse(res, 429, 'Too many requests')
 
 	@describe('Add Email')
 	def addEmail():
