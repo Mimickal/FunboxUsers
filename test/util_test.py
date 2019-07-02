@@ -49,3 +49,32 @@ def utilTests():
 		def recursivePathCreation():
 			assert_that(util.getSecretKey(test_nested_path), is_(not_none()))
 
+	@describe('makeCode')
+	def test_makeCode():
+
+		@it('Length is respected')
+		def lengthRespected():
+			size = 12
+			code = util.makeCode(12)
+			assert_that(code, has_length(size))
+
+		@it('0 length')
+		def zeroLength():
+			code = util.makeCode(0)
+			assert_that(code, equal_to(''))
+
+		@it('Negative length')
+		def negativeLength():
+			size = -1
+			assert_that(
+				calling(util.makeCode).with_args(size),
+				raises(Exception, 'Tried to make a code with length %d' % size)
+			)
+
+		@it('Non-numeric length')
+		def nonNumericLength():
+			assert_that(
+				calling(util.makeCode).with_args('not an int'),
+				raises(TypeError)
+			)
+

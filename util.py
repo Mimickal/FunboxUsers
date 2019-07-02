@@ -30,6 +30,8 @@ def _getSecretKey(key):
 
 def makeCode(length):
 	'''Creates a random code'''
+	if length < 0:
+		raise Exception('Tried to make a code with length %d' % length)
 	return ''.join(choice(ascii_letters + digits) for _ in range(length))
 
 def makeUniqueCode(length):
