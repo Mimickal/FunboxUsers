@@ -6,7 +6,8 @@ from base64 import b64encode
 import re
 import yaml
 
-from server import app as server_app, makeUniqueCode, limiter
+from server import app as server_app, limiter
+import util
 import db
 
 def authHeader(username, password):
@@ -346,7 +347,7 @@ def serverTests():
 			num_codes = 10
 			added_codes = []
 			for _ in range(num_codes):
-				code = makeUniqueCode()
+				code = util.makeUniqueCode(8)
 				db.addEmailCode(code, test_id, 'test@email.com')
 				added_codes.append(code)
 

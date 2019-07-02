@@ -94,6 +94,7 @@ def verifyLogin(username, password):
 @app.route('/update/email', methods=['PUT'])
 def addEmail():
 	global EMAIL_VALIDATOR
+	global CODE_SIZE
 	auth = request.authorization
 	user = db.getUser(auth.username)
 	email = request.get_data(as_text=True)
@@ -108,7 +109,7 @@ def addEmail():
 
 	if pw_hash == user.get('pass_hash'):
 		# Create an email verify code
-		code = makeUniqueCode()
+		code = util.makeUniqueCode(CODE_SIZE)
 		db.addEmailCode(code, user.get('id'), email)
 
 		# TODO we're hard coding this link for now
@@ -148,14 +149,6 @@ def ok():
 
 def forbidden():
 	return 'Forbidden', 403
-
-def makeUniqueCode():
-	global CODE_SIZE
-	# Bootleg do-while. Thanks Python.
-	while True:
-		code = ''.join(choice(ascii_letters + digits) for _ in range(CODE_SIZE))
-		if db.getCode(code) is None:
-			return code
 
 def sendmail(email, subject, message):
 	post = "\n\n\nNote: This is an automated email. " + \

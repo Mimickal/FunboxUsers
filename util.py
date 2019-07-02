@@ -1,4 +1,8 @@
 import os
+from string import ascii_letters, digits
+from random import choice
+
+import db
 
 SECRET_SIZE = 32
 
@@ -23,3 +27,16 @@ def _getSecretKey(key):
 			secret = os.urandom(SECRET_SIZE)
 			secretFile.write(secret)
 	return secret
+
+def makeCode(length):
+	'''Creates a random code'''
+	return ''.join(choice(ascii_letters + digits) for _ in range(length))
+
+def makeUniqueCode(length):
+	'''Creates a unique random code. Uses DB to ensure uniqueness'''
+	# Bootleg do-while. Thanks Python.
+	while True:
+		code = makeCode(length)
+		if db.getCode(code) is None:
+			return code
+
