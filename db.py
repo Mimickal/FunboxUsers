@@ -7,12 +7,6 @@ CODE_TYPE_EMAIL = 'email'
 # Connect to DB and setup tables, if necessary
 DB_NAME = 'fbusers.db'
 
-# TODO This needs a new place
-'''
-SETUP_SCRIPT = open('dbsetup.sql').read()
-DB_CONN.executescript(SETUP_SCRIPT)
-'''
-
 def getDb():
 	'''Gets the DB connection for this context.
 	   Will make a connection if there is none.'''
@@ -21,6 +15,8 @@ def getDb():
 		db = g._database = sqlite3.connect(DB_NAME,
 		                       detect_types=sqlite3.PARSE_COLNAMES,
 		                   )
+		with open('dbsetup.sql') as file:
+			db.executescript(file.read())
 	return db
 
 def closeDb():
