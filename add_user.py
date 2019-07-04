@@ -1,3 +1,4 @@
+# Depricated, and will not work with our new database accessing method.
 from random import choice
 from string import ascii_letters, digits, printable
 import scrypt

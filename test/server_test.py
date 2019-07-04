@@ -24,13 +24,15 @@ def assertResponse(response, code, text, desc=None):
 # describe blocks, so we need this as a work-around for now.
 def cleanupUsers(name):
 	assert_that(name, not_none())
-	db.DB_CONN.execute('DELETE FROM Users WHERE name = ?', [name])
-	db.DB_CONN.commit()
+	with server_app.app_context():
+		db.getDb().execute('DELETE FROM Users WHERE name = ?', [name])
+		db.getDb().commit()
 
 def cleanupCodes(code):
 	assert_that(code, not_none())
-	db.DB_CONN.execute('DELETE FROM Codes WHERE code = ?', [code])
-	db.DB_CONN.commit()
+	with server_app.app_context():
+		db.getDb().execute('DELETE FROM Codes WHERE code = ?', [code])
+		db.getDb().commit()
 
 @describe('Server Tests')
 def serverTests():
@@ -74,7 +76,8 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
-			db.addUser(test_user)
+			with server_app.app_context():
+				db.addUser(test_user)
 			enableRateLimiter(False)
 
 		@afterEach
@@ -151,7 +154,8 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
-			db.addUser(test_user)
+			with server_app.app_context():
+				db.addUser(test_user)
 			enableRateLimiter(False)
 
 		@afterEach
@@ -200,7 +204,8 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
-			db.addUser(test_user)
+			with server_app.app_context():
+				db.addUser(test_user)
 			enableRateLimiter(False)
 
 		@afterEach
@@ -286,7 +291,8 @@ def serverTests():
 		@beforeEach
 		def _beforeEach():
 			nonlocal test_id
-			test_id = db.addUser(test_user)
+			with server_app.app_context():
+				test_id = db.addUser(test_user)
 
 		@afterEach
 		def _afterEach():
@@ -334,7 +340,8 @@ def serverTests():
 			match = re.search(r'email\/confirm\/(\w{8})', args[2])
 			assert_that(match, not_none())
 			code = match.groups()[0]
-			assert_that(db.getCode(code), not_none())
+			with server_app.app_context():
+				assert_that(db.getCode(code), not_none())
 
 			cleanupCodes(code)
 
@@ -346,27 +353,33 @@ def serverTests():
 			num_codes = 10
 			added_codes = []
 			for _ in range(num_codes):
+				# We can't put a the app_context on the whole codesUnique()
+				# function. Because part of verifying if makeUniqueCode()
+				# works is to make sure it makes its own context.
 				code = makeUniqueCode()
-				db.addEmailCode(code, test_id, 'test@email.com')
+				with server_app.app_context():
+					db.addEmailCode(code, test_id, 'test@email.com')
 				added_codes.append(code)
 
-			# Verify that all codes were added and unique
-			cursor = db.DB_CONN.execute('''
-					SELECT DISTINCT count(1)
-					FROM Codes
-					WHERE code IN ({})
-				'''.format(','.join(['?'] * num_codes)),
-				added_codes)
-				# ^^^ Yes, python actually needs this jank^^^
-			codes_added = cursor.fetchone()[0]
+			# See previous comment.
+			with server_app.app_context():
+				# Verify that all codes were added and unique
+				cursor = db.getDb().execute('''
+						SELECT DISTINCT count(1)
+						FROM Codes
+						WHERE code IN ({})
+					'''.format(','.join(['?'] * num_codes)),
+					added_codes)
+					# ^^^ Yes, python actually needs this jank^^^
+				codes_added = cursor.fetchone()[0]
 
-			assert_that(codes_added, equal_to(num_codes))
+				assert_that(codes_added, equal_to(num_codes))
 
-			# Cleanup
-			db.DB_CONN.execute('''
-					DELETE FROM Codes WHERE code IN ({})
-				'''.format(','.join(['?'] * num_codes)),
-				added_codes)
+				# Cleanup
+				db.getDb().execute('''
+						DELETE FROM Codes WHERE code IN ({})
+					'''.format(','.join(['?'] * num_codes)),
+					added_codes)
 
 	@describe('Confirm Code')
 	def confirmCode():
@@ -374,8 +387,9 @@ def serverTests():
 		@beforeEach
 		def _beforeEach():
 			nonlocal test_id
-			test_id = db.addUser(test_user)
-			db.addEmailCode(test_code, test_id, test_email)
+			with server_app.app_context():
+				test_id = db.addUser(test_user)
+				db.addEmailCode(test_code, test_id, test_email)
 
 		@afterEach
 		def _afterEach():
@@ -399,22 +413,24 @@ def serverTests():
 		@it('Attempting to confirm a used code')
 		def confirmUsedCode():
 			nonlocal test_id
-			db.useCode(test_code)
-			response = app.get('/update/email/confirm/' + test_code)
-			assertResponse(response, 403, 'Forbidden')
+			with server_app.app_context():
+				db.useCode(test_code)
+				response = app.get('/update/email/confirm/' + test_code)
+				assertResponse(response, 403, 'Forbidden')
 
-			user = db.getUserById(test_id)
-			assert_that(user.get('email', None), none())
+				user = db.getUserById(test_id)
+				assert_that(user.get('email', None), none())
 
 		@it('Attempting to confirm code for a deleted user')
 		def confirmCodeDeletedUser():
 			nonlocal test_id
-			db.DB_CONN.execute('DELETE FROM Users WHERE id = ?', [test_id])
-			db.DB_CONN.commit()
+			with server_app.app_context():
+				db.getDb().execute('DELETE FROM Users WHERE id = ?', [test_id])
+				db.getDb().commit()
 
-			response = app.get('/update/email/confirm/' + test_code)
-			assertResponse(response, 403, 'Forbidden')
-			assert_that(db.getUserById(test_id), none())
+				response = app.get('/update/email/confirm/' + test_code)
+				assertResponse(response, 403, 'Forbidden')
+				assert_that(db.getUserById(test_id), none())
 
 		@it('Successfully confirm email via code')
 		def emailAdded():
@@ -422,9 +438,10 @@ def serverTests():
 			response = app.get('/update/email/confirm/' + test_code)
 			assertResponse(response, 200, 'Ok')
 
-			user = db.getUserById(test_id)
-			assert_that(user.get('email'), equal_to(test_email))
-			assert_that(db.getCode(test_code), none())
+			with server_app.app_context():
+				user = db.getUserById(test_id)
+				assert_that(user.get('email'), equal_to(test_email))
+				assert_that(db.getCode(test_code), none())
 
 	@describe('Generic Error')
 	def genericError():
