@@ -5,6 +5,7 @@ CODE_TYPE_EMAIL = 'email'
 
 # Connect to DB and setup tables, if necessary
 DB_NAME = 'fbusers.db'
+#TODO stop using DB_CONN
 DB_CONN = sqlite3.connect(DB_NAME,
 	detect_types=sqlite3.PARSE_COLNAMES,
 	check_same_thread=False #TODO this might be a terrible idea
@@ -12,12 +13,7 @@ DB_CONN = sqlite3.connect(DB_NAME,
 
 SETUP_SCRIPT = open('dbsetup.sql').read()
 DB_CONN.executescript(SETUP_SCRIPT)
-
-
-def getUser(name):
-	'''Gets a user by their name.'''
-	global DB_CONN
-	cursor = DB_CONN.execute('SELECT * FROM Users WHERE name = ?', [name])
+def FetchOneAsMap(cursor):
 	row = cursor.fetchone()
 
 	if row is None:
@@ -31,21 +27,19 @@ def getUser(name):
 
 	return data
 
+def getUser(name):
+	'''Gets a user by their name.'''
+	global DB_CONN
+	cursor = DB_CONN.execute('SELECT * FROM Users WHERE name = ?', [name])
+
+	return FetchOneAsMap(cursor)
+
 def getUserById(uid):
 	'''Gets a user by their DB assigned ID'''
 	global DB_CONN
 	cursor = DB_CONN.execute('SELECT * FROM Users WHERE id = ?', [uid])
-	row = cursor.fetchone()
 
-	if row is None:
-		return None
-
-	data = {}
-	desc = cursor.description
-	for x in range(len(desc)):
-		data[desc[x][0]] = row[x]
-
-	return data
+	return FetchOneAsMap(cursor)
 
 def addUser(user):
 	'''Creates a new user.'''
@@ -117,17 +111,8 @@ def getCode(code):
 		WHERE code = ?
 		AND used_at IS NULL;
 	''', [code])
-	row = cursor.fetchone()
-
-	if row is None:
-		return None
-
-	data = {}
-	desc = cursor.description
-	for x in range(len(desc)):
-		data[desc[x][0]] = row[x];
-
-	return data
+	
+	return FetchOneAsMap(cursor)
 
 def useCode(code):
 	'''Sets a code's used_at field, effectively marking it as used.'''
