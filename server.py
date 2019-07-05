@@ -22,7 +22,7 @@ app.secret_key = util.getSecretKey('secret.key')
 config = yaml.safe_load(open('config.yaml'))
 
 csrf = CSRFProtect(app)
-app.config['WTF_CSRF_ENABLED'] = False
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 
 limiter = Limiter(app, key_func=get_remote_address)
 login_limit = limiter.shared_limit(config['rate_login'], scope='login')
