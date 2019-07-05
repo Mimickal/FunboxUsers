@@ -266,21 +266,23 @@ def serverTests():
 			})
 			assertResponse(response, 400, 'Session expired. Reload and try again')
 
-		@it('Empty body')
+		@it('Empty and invalid body')
 		def emptyBody():
 			headers = { 'X-CSRFToken': getLoginCSRFToken() }
-			res1 = app.post('/login/form', headers=headers)
-			res2 = app.post('/login/form', headers=headers, data={})
-			res3 = app.post('/login/form', headers=headers, json={})
-			assertResponse(res1, 403, 'Forbidden')
-			assertResponse(res2, 403, 'Forbidden')
-			assertResponse(res3, 403, 'Forbidden')
-
-		@it('Non-json body')
-		def incorrectData():
-			headers = { 'X-CSRFToken': getLoginCSRFToken() }
-			res = app.post('/login/form', headers=headers, data='I am not json')
-			assertResponse(res, 403, 'Forbidden')
+			res1 = app.post('/login/json', headers=headers)
+			res2 = app.post('/login/json', headers=headers, data={})
+			res3 = app.post('/login/json', headers=headers, data=None)
+			res4 = app.post('/login/json', headers=headers, json={})
+			res5 = app.post('/login/json', headers=headers, json=None)
+			res6 = app.post('/login/json', headers=headers, json='I am not json')
+			res7 = app.post('/login/json', headers=headers, json=1234)
+			assertResponse(res1, 400, 'Missing JSON body')
+			assertResponse(res2, 400, 'Missing JSON body')
+			assertResponse(res3, 400, 'Missing JSON body')
+			assertResponse(res4, 400, 'Missing username / password in JSON body')
+			assertResponse(res5, 400, 'Missing JSON body')
+			assertResponse(res6, 400, 'Malformed JSON body')
+			assertResponse(res7, 400, 'Malformed JSON body')
 
 		@it('Hitting rate limit')
 		def rateLimit():

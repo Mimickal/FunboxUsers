@@ -73,7 +73,19 @@ def userLoginBasic():
 def userLoginJson():
 	csrf.protect()
 	json = request.json
-	return verifyLogin(json['username'], json['password'])
+
+	if json is None:
+		return 'Missing JSON body', 400
+
+	try:
+		username = json['username']
+		password = json['password']
+	except KeyError:
+		return 'Missing username / password in JSON body', 400
+	except TypeError:
+		return 'Malformed JSON body', 400
+
+	return verifyLogin(username, password)
 
 
 def verifyLogin(username, password, cookie=False):
