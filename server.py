@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, session
 from flask_wtf.csrf import CSRFProtect, CSRFError
 import scrypt
 import re
@@ -76,7 +76,10 @@ def userLoginJson():
 	return verifyLogin(json['username'], json['password'])
 
 
-def verifyLogin(username, password):
+def verifyLogin(username, password, cookie=False):
+	if session.get('login', None) is not None:
+		return 'Already logged in', 400
+
 	user = db.getUser(username)
 
 	# Return 403 instead of a 404 to make list of users harder to brute force

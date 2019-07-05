@@ -64,6 +64,10 @@ def serverTests():
 		limiter.reset()
 		limiter.enabled = is_enabled
 
+	def removeLoginToken():
+		with app.session_transaction() as session:
+			session.pop('login', None)
+
 	@before
 	def _beforeAll():
 		cleanupUsers(test_name)
@@ -81,6 +85,7 @@ def serverTests():
 		@afterEach
 		def _afterEach():
 			cleanupUsers(test_name)
+			removeLoginToken()
 
 		@it('User does not exist')
 		def noUser():
@@ -147,6 +152,17 @@ def serverTests():
 			res = app.post('/login/form', data=data)
 			assertResponse(res, 429, 'Too many requests')
 
+		@it('Already have a login cookie')
+		def alreadyHaveLogin():
+			with app.session_transaction() as session:
+				session['login'] = 'test token'
+			res = app.post('/login/form', data={
+				'csrf_token': getLoginCSRFToken(),
+				'username': test_name,
+				'password': test_pass
+			})
+			assertResponse(res, 400, 'Already logged in')
+
 	@describe('Login basic auth')
 	def loginBasic():
 
@@ -207,6 +223,7 @@ def serverTests():
 		@afterEach
 		def _afterEach():
 			cleanupUsers(test_name)
+			removeLoginToken()
 
 		@it('Successful login')
 		def goodLogin():
@@ -280,6 +297,19 @@ def serverTests():
 				)
 			res = app.post('/login/json', headers=headers, json=json)
 			assertResponse(res, 429, 'Too many requests')
+
+		@it('Already have a login cookie')
+		def alreadyHaveLogin():
+			with app.session_transaction() as session:
+				session['login'] = 'test token'
+
+			headers = { 'X-CSRFToken': getLoginCSRFToken() }
+			json = {
+				'username': test_name,
+				'password': test_pass
+			}
+			res = app.post('/login/json', headers=headers, json=json)
+			assertResponse(res, 400, 'Already logged in')
 
 	@describe('Add Email')
 	def addEmail():
