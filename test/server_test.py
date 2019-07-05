@@ -339,36 +339,6 @@ def serverTests():
 
 			cleanupCodes(code)
 
-		@it('Ensures unique codes')
-		def codesUnique():
-			nonlocal test_id
-
-			# Add a bunch of codes
-			num_codes = 10
-			added_codes = []
-			for _ in range(num_codes):
-				code = util.makeUniqueCode(8)
-				db.addEmailCode(code, test_id, 'test@email.com')
-				added_codes.append(code)
-
-			# Verify that all codes were added and unique
-			cursor = db.DB_CONN.execute('''
-					SELECT DISTINCT count(1)
-					FROM Codes
-					WHERE code IN ({})
-				'''.format(','.join(['?'] * num_codes)),
-				added_codes)
-				# ^^^ Yes, python actually needs this jank^^^
-			codes_added = cursor.fetchone()[0]
-
-			assert_that(codes_added, equal_to(num_codes))
-
-			# Cleanup
-			db.DB_CONN.execute('''
-					DELETE FROM Codes WHERE code IN ({})
-				'''.format(','.join(['?'] * num_codes)),
-				added_codes)
-
 	@describe('Confirm Code')
 	def confirmCode():
 

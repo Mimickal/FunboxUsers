@@ -1,10 +1,11 @@
 import os
-from string import ascii_letters, digits
+import string
 from random import choice
 
 import db
 
 SECRET_SIZE = 32
+CODE_CHARS = string.ascii_letters + string.digits
 
 def getSecretKey(key):
 	'''Load a secret key, creating it if it doesn't exist'''
@@ -30,12 +31,21 @@ def _getSecretKey(key):
 
 def makeCode(length):
 	'''Creates a random code'''
+	global CODE_CHARS
 	if length < 0:
 		raise Exception('Tried to make a code with length %d' % length)
-	return ''.join(choice(ascii_letters + digits) for _ in range(length))
+	return ''.join(choice(CODE_CHARS) for _ in range(length))
 
 def makeUniqueCode(length):
 	'''Creates a unique random code. Uses DB to ensure uniqueness'''
+	global CODE_CHARS
+
+	# Catch the absurdly unlikely case that we actually run out of codes
+	max_combos = len(CODE_CHARS) ** length
+	current_combos = db.getNumCodesWithLength(length)
+	if current_combos >= max_combos:
+		raise Exception('No remaining unique codes available of length %d' % length)
+
 	# Bootleg do-while. Thanks Python.
 	while True:
 		code = makeCode(length)

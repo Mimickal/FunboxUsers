@@ -151,3 +151,12 @@ def cullOldCodes():
 	DB_CONN.commit()
 	return cursor.rowcount
 
+def getNumCodesWithLength(length):
+	'''Returns the number of codes with the given length'''
+	global DB_CONN
+	cursor = DB_CONN.execute('''
+		SELECT COUNT(1) FROM Codes
+		WHERE LENGTH(code) == ?;
+	''', [length])
+	return cursor.fetchone()[0]
+

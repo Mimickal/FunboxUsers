@@ -4,6 +4,7 @@ import os
 import shutil
 
 import util
+import db
 
 @describe('Util Tests')
 def utilTests():
@@ -76,5 +77,61 @@ def utilTests():
 			assert_that(
 				calling(util.makeCode).with_args('not an int'),
 				raises(TypeError)
+			)
+
+	@describe('makeUniqueCode')
+	def test_makeUniqueCode():
+
+		added_codes = []
+
+		@afterEach
+		def cleanupCodes():
+			nonlocal added_codes
+			db.DB_CONN.execute('''
+					DELETE FROM Codes WHERE code IN ({})
+				'''.format(','.join( ['?'] * len(added_codes) )),
+				added_codes
+			)
+			db.DB_CONN.commit()
+
+		@it('Codes are unique')
+		def codesAreUnique():
+			nonlocal added_codes
+
+			# Add a bunch of codes
+			num_codes = 10
+			user_id = 1 # This works even if user_id doesn't exist
+			for _ in range(num_codes):
+				code = util.makeUniqueCode(8)
+				# FIXME remove this and make makeUniqueCode add the code
+				db.addEmailCode(code, user_id, 'test@email.com')
+				added_codes.append(code)
+
+			# Verify that all codes were added and unique
+			cursor = db.DB_CONN.execute('''
+					SELECT DISTINCT count(1)
+					FROM Codes
+					WHERE code IN ({})
+				'''.format(','.join(['?'] * num_codes)),
+				added_codes
+			) # ^^^ Yes, python actually needs this jank^^^
+			codes_added = cursor.fetchone()[0]
+
+			assert_that(codes_added, equal_to(num_codes))
+
+		@it('Detect when there are no more unique combinations')
+		def notEnoughUniqueCodes():
+			nonlocal added_codes
+
+			num_codes = len(util.CODE_CHARS)
+			for _ in range(num_codes):
+				code = util.makeUniqueCode(1)
+				# TODO remove this and make makeUniqueCode add the code
+				db.addEmailCode(code, 1, 'test@email.com')
+				added_codes.append(code)
+
+			assert_that(
+				calling(util.makeUniqueCode).with_args(1),
+				raises(Exception, 'No remaining unique codes available of length 1')
 			)
 
