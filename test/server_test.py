@@ -122,19 +122,21 @@ def serverTests():
 			})
 			assertResponse(response, 400, 'Session expired. Reload and try again')
 
-		@it('Empty body')
+		@it('Empty and invalid body')
 		def emptyBody():
+			data = { 'csrf_token': getLoginCSRFToken() }
 			res1 = app.post('/login/form')
 			res2 = app.post('/login/form', data={})
-			res3 = app.post('/login/form', json={})
+			res3 = app.post('/login/form', data=data)
+			res4 = app.post('/login/form', data='I am not json')
+			res5 = app.post('/login/form', json={})
+			res6 = app.post('/login/form', json=data)
 			assertResponse(res1, 400, 'Session expired. Reload and try again')
 			assertResponse(res2, 400, 'Session expired. Reload and try again')
-			assertResponse(res3, 400, 'Session expired. Reload and try again')
-
-		@it('Non-json body')
-		def incorrectData():
-			res = app.post('/login/form', data='I am not json')
-			assertResponse(res, 400, 'Session expired. Reload and try again')
+			assertResponse(res3, 400, 'Missing username / password in form body')
+			assertResponse(res4, 400, 'Session expired. Reload and try again')
+			assertResponse(res5, 400, 'Session expired. Reload and try again')
+			assertResponse(res6, 400, 'Session expired. Reload and try again')
 
 		@it('Hitting rate limit')
 		def rateLimit():

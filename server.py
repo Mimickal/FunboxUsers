@@ -57,8 +57,16 @@ def getLogin():
 @app.route('/login/form', methods=['POST'])
 def userLoginForm():
 	csrf.protect()
+
+	# form will never be None, otherwise CSRF protection will trigger
 	form = request.form
-	return verifyLogin(form.get('username'), form.get('password'))
+	try:
+		username = form['username']
+		password = form['password']
+	except KeyError:
+		return 'Missing username / password in form body', 400
+
+	return verifyLogin(username, password)
 
 
 @login_limit
