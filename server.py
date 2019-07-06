@@ -15,6 +15,7 @@ import util
 EMAIL_VALIDATOR = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
 CODE_VALIDATOR = re.compile(r'^(\w{8})$')
 CODE_SIZE = 8
+LOGIN_COOKIE_SIZE = 16
 
 app = Flask('Funbox Accounts')
 app.secret_key = util.getSecretKey('secret.key')
@@ -66,7 +67,7 @@ def userLoginForm():
 	except KeyError:
 		return 'Missing username / password in form body', 400
 
-	return verifyLogin(username, password)
+	return verifyLogin(username, password, cookie=True)
 
 
 @login_limit
@@ -93,10 +94,12 @@ def userLoginJson():
 	except TypeError:
 		return 'Malformed JSON body', 400
 
-	return verifyLogin(username, password)
+	return verifyLogin(username, password, cookie=True)
 
 
 def verifyLogin(username, password, cookie=False):
+	global LOGIN_COOKIE_SIZE
+
 	if session.get('login', None) is not None:
 		return 'Already logged in', 400
 
@@ -109,6 +112,8 @@ def verifyLogin(username, password, cookie=False):
 	pw_hash = scrypt.hash(password, user.get('pass_salt'))
 
 	if pw_hash == user.get('pass_hash'):
+		if cookie:
+			session['login'] = util.makeUniqueCode(LOGIN_COOKIE_SIZE)
 		return ok()
 	else:
 		return forbidden()

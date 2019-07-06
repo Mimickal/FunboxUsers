@@ -144,11 +144,11 @@ def serverTests():
 			data = {
 				'csrf_token': getLoginCSRFToken(),
 				'username': test_name,
-				'password': test_pass
+				'password': 'bad pass'
 			}
 			for i in range(rate_login):
 				res = app.post('/login/form', data=data)
-				assertResponse(res, 200, 'Ok',
+				assertResponse(res, 403, 'Forbidden',
 					'Prematurely hit limit at %d/%d requests' % (i + 1, rate_login)
 				)
 			res = app.post('/login/form', data=data)
@@ -205,10 +205,10 @@ def serverTests():
 		@it('Hitting rate limit')
 		def rateLimit():
 			enableRateLimiter(True)
-			headers = authHeader(test_name, test_pass)
+			headers = authHeader(test_name, 'bad pass')
 			for i in range(rate_login):
 				res = app.post('/login/basic', headers=headers)
-				assertResponse(res, 200, 'Ok',
+				assertResponse(res, 403, 'Forbidden',
 					'Prematurely hit limit at %d/%d requests' % (i + 1, rate_login)
 				)
 			res = app.post('/login/basic', headers=headers)
@@ -292,11 +292,11 @@ def serverTests():
 			headers = { 'X-CSRFToken': getLoginCSRFToken() }
 			json = {
 				'username': test_name,
-				'password': test_pass
+				'password': 'bad pass'
 			}
 			for i in range(rate_login):
 				res = app.post('/login/json', headers=headers, json=json)
-				assertResponse(res, 200, 'Ok',
+				assertResponse(res, 403, 'Forbidden',
 					'Prematurely hit limit at %d/%d requests' % (i + 1, rate_login)
 				)
 			res = app.post('/login/json', headers=headers, json=json)
