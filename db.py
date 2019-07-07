@@ -13,8 +13,8 @@ def getDb():
 	db = getattr(g, '_database', None)
 	if db is None:
 		db = g._database = sqlite3.connect(DB_NAME,
-		                       detect_types=sqlite3.PARSE_COLNAMES,
-		                   )
+			detect_types=sqlite3.PARSE_COLNAMES,
+			)
 		with open('dbsetup.sql') as file:
 			db.executescript(file.read())
 	return db
