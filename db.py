@@ -88,8 +88,8 @@ def updateUser(user):
 
 def addEmailCode(code, user_id, email):
 	'''Adds a new email verification code.'''
-	db_conn = getDb()
 	global CODE_TYPE_EMAIL
+	db_conn = getDb()
 
 	if email is None:
 		raise sqlite3.IntegrityError('Email codes must define an email')
@@ -103,8 +103,8 @@ def addEmailCode(code, user_id, email):
 
 def addPasswordCode(code, user_id):
 	'''Adds a new password reset code.'''
-	db_conn = getDb()
 	global CODE_TYPE_PASS
+	db_conn = getDb()
 	db_conn.execute('''
 		INSERT INTO Codes (
 			type, code, user_id
