@@ -107,12 +107,16 @@ def serverTests():
 
 		@it('Successful login')
 		def goodLogin():
+			with app.session_transaction() as session:
+				assert_that(session.get('login', None), is_(none()))
 			response = app.post('/login/form', data={
 				'csrf_token': getLoginCSRFToken(),
 				'username': test_name,
 				'password': test_pass
 			})
 			assertResponse(response, 200, 'Ok')
+			with app.session_transaction() as session:
+				assert_that(session.get('login', None), is_not(none()))
 
 		@it('Missing CSRF token')
 		def missingCSRFToken():
@@ -229,6 +233,8 @@ def serverTests():
 
 		@it('Successful login')
 		def goodLogin():
+			with app.session_transaction() as session:
+				assert_that(session.get('login', None), is_(none()))
 			response = app.post('/login/json',
 				headers={ 'X-CSRFToken': getLoginCSRFToken() },
 				json={
@@ -237,6 +243,8 @@ def serverTests():
 				}
 			)
 			assertResponse(response, 200, 'Ok')
+			with app.session_transaction() as session:
+				assert_that(session.get('login', None), is_not(none()))
 
 		@it('User does not exist')
 		def userDoesNotExist():
