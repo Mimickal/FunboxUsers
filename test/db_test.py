@@ -86,27 +86,26 @@ def databaseTests():
 
 	@describe('Get User')
 	def getUser():
-		with app.app_context():
-			@beforeEach
-			def _beforeEach():
-				with app.app_context():
-					cleanup()
-					addTestUser()
+		@beforeEach
+		def _beforeEach():
+			with app.app_context():
+				cleanup()
+				addTestUser()
 
-			@it('User fields persisted')
-			def fieldsPreserved():
-				with app.app_context():
-					user = db.getUser(test_name)
-					assert_that(user.get('name'), equal_to(test_name))
-					assert_that(user.get('pass_hash'), equal_to(test_hash))
-					assert_that(user.get('pass_salt'), equal_to(test_salt))
-					assert_that(user.get('email'), equal_to(test_email))
+		@it('User fields persisted')
+		def fieldsPreserved():
+			with app.app_context():
+				user = db.getUser(test_name)
+				assert_that(user.get('name'), equal_to(test_name))
+				assert_that(user.get('pass_hash'), equal_to(test_hash))
+				assert_that(user.get('pass_salt'), equal_to(test_salt))
+				assert_that(user.get('email'), equal_to(test_email))
 
-			@it('None returned for non-existing user')
-			def noUserFound():
-				with app.app_context():
-					user = db.getUser('badname')
-					assert_that(user, none())
+		@it('None returned for non-existing user')
+		def noUserFound():
+			with app.app_context():
+				user = db.getUser('badname')
+				assert_that(user, none())
 
 	@describe('Add User')
 	def addUser():
