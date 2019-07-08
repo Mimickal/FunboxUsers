@@ -77,7 +77,8 @@ def userLoginJson():
 
 
 def verifyLogin(username, password):
-	user = db.getUser(username)
+	with app.app_context():
+		user = db.getUser(username)
 
 	# Return 403 instead of a 404 to make list of users harder to brute force
 	if user is None:
@@ -94,51 +95,52 @@ def verifyLogin(username, password):
 @app.route('/update/email', methods=['PUT'])
 def addEmail():
 	global EMAIL_VALIDATOR
-	auth = request.authorization
-	user = db.getUser(auth.username)
-	email = request.get_data(as_text=True)
+	with app.app_context():
+		auth = request.authorization
+		user = db.getUser(auth.username)
+		email = request.get_data(as_text=True)
 
-	if user is None:
-		return forbidden()
+		if user is None:
+			return forbidden()
 
-	if EMAIL_VALIDATOR.match(email) is None:
-		return 'Invalid email', 400
+		if EMAIL_VALIDATOR.match(email) is None:
+			return 'Invalid email', 400
 
-	pw_hash = scrypt.hash(auth.password, user.get('pass_salt'))
+		pw_hash = scrypt.hash(auth.password, user.get('pass_salt'))
 
-	if pw_hash == user.get('pass_hash'):
-		# Create an email verify code
-		code = makeUniqueCode()
-		db.addEmailCode(code, user.get('id'), email)
+		if pw_hash == user.get('pass_hash'):
+			# Create an email verify code
+			code = makeUniqueCode()
+			db.addEmailCode(code, user.get('id'), email)
 
-		# TODO we're hard coding this link for now
-		link = 'https://funbox.com.ru:20100/update/email/confirm/' + code
-		sendmail(email, 'Funbox Email Verification',
-			'Hello from funbox! Use this link to verify your email: ' + link)
+			# TODO we're hard coding this link for now
+			link = 'https://funbox.com.ru:20100/update/email/confirm/' + code
+			sendmail(email, 'Funbox Email Verification',
+				'Hello from funbox! Use this link to verify your email: ' + link)
 
-		return ok()
-	else:
-		return forbidden()
+			return ok()
+		else:
+			return forbidden()
 
 
 @app.route('/update/email/confirm/<code>', methods=['GET'])
 def confirmEmail(code):
 	global CODE_VALIDATOR
+	with app.app_context():
+		if CODE_VALIDATOR.match(code) is None:
+			return forbidden()
 
-	if CODE_VALIDATOR.match(code) is None:
-		return forbidden()
+		code_info = db.getCode(code)
+		if code_info is None:
+			return forbidden()
 
-	code_info = db.getCode(code)
-	if code_info is None:
-		return forbidden()
+		user = db.getUserById(code_info.get('user_id'))
+		if user is None:
+			return forbidden()
 
-	user = db.getUserById(code_info.get('user_id'))
-	if user is None:
-		return forbidden()
-
-	user['email'] = code_info.get('email')
-	db.updateUser(user)
-	db.useCode(code_info.get('code'))
+		user['email'] = code_info.get('email')
+		db.updateUser(user)
+		db.useCode(code_info.get('code'))
 
 	return ok()
 
@@ -152,10 +154,11 @@ def forbidden():
 def makeUniqueCode():
 	global CODE_SIZE
 	# Bootleg do-while. Thanks Python.
-	while True:
-		code = ''.join(choice(ascii_letters + digits) for _ in range(CODE_SIZE))
-		if db.getCode(code) is None:
-			return code
+	with app.app_context():
+		while True:
+			code = ''.join(choice(ascii_letters + digits) for _ in range(CODE_SIZE))
+			if db.getCode(code) is None:
+				return code
 
 def sendmail(email, subject, message):
 	post = "\n\n\nNote: This is an automated email. " + \
@@ -167,6 +170,9 @@ def sendmail(email, subject, message):
 	], stdin=PIPE)
 	proc.communicate(input=bytes(message + post, 'UTF-8'))
 
+@app.teardown_appcontext
+def close_connection(exception):
+	db.closeDb()
 
 if __name__ == '__main__':
 	app.run(host=config['host'], port=config['port'], debug=config['debug'])
