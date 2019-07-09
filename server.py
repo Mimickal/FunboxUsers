@@ -103,71 +103,74 @@ def verifyLogin(username, password, cookie=False):
 	if session.get('login', None) is not None:
 		return 'Already logged in', 400
 
-	user = db.getUser(username)
+	with app.app_context():
+		user = db.getUser(username)
 
-	# Return 403 instead of a 404 to make list of users harder to brute force
-	if user is None:
-		return forbidden()
+		# Return 403 instead of a 404 to make list of users harder to brute force
+		if user is None:
+			return forbidden()
 
-	pw_hash = scrypt.hash(password, user.get('pass_salt'))
+		pw_hash = scrypt.hash(password, user.get('pass_salt'))
 
-	if pw_hash == user.get('pass_hash'):
-		if cookie:
-			session['login'] = util.makeUniqueCode(LOGIN_COOKIE_SIZE)
-		return ok()
-	else:
-		return forbidden()
+		if pw_hash == user.get('pass_hash'):
+			if cookie:
+				session['login'] = util.makeUniqueCode(LOGIN_COOKIE_SIZE)
+			return ok()
+		else:
+			return forbidden()
 
 
 @app.route('/update/email', methods=['PUT'])
 def addEmail():
 	global EMAIL_VALIDATOR
 	global CODE_SIZE
-	auth = request.authorization
-	user = db.getUser(auth.username)
-	email = request.get_data(as_text=True)
 
-	if user is None:
-		return forbidden()
+	with app.app_context():
+		auth = request.authorization
+		user = db.getUser(auth.username)
+		email = request.get_data(as_text=True)
 
-	if EMAIL_VALIDATOR.match(email) is None:
-		return 'Invalid email', 400
+		if user is None:
+			return forbidden()
 
-	pw_hash = scrypt.hash(auth.password, user.get('pass_salt'))
+		if EMAIL_VALIDATOR.match(email) is None:
+			return 'Invalid email', 400
 
-	if pw_hash == user.get('pass_hash'):
-		# Create an email verify code
-		code = util.makeUniqueCode(CODE_SIZE)
-		db.addEmailCode(code, user.get('id'), email)
+		pw_hash = scrypt.hash(auth.password, user.get('pass_salt'))
 
-		# TODO we're hard coding this link for now
-		link = 'https://funbox.com.ru:20100/update/email/confirm/' + code
-		sendmail(email, 'Funbox Email Verification',
-			'Hello from funbox! Use this link to verify your email: ' + link)
+		if pw_hash == user.get('pass_hash'):
+			# Create an email verify code
+			code = util.makeUniqueCode(CODE_SIZE)
+			db.addEmailCode(code, user.get('id'), email)
 
-		return ok()
-	else:
-		return forbidden()
+			# TODO we're hard coding this link for now
+			link = 'https://funbox.com.ru:20100/update/email/confirm/' + code
+			sendmail(email, 'Funbox Email Verification',
+				'Hello from funbox! Use this link to verify your email: ' + link)
+
+			return ok()
+		else:
+			return forbidden()
 
 
 @app.route('/update/email/confirm/<code>', methods=['GET'])
 def confirmEmail(code):
 	global CODE_VALIDATOR
+	with app.app_context():
+		if CODE_VALIDATOR.match(code) is None:
+			return forbidden()
 
-	if CODE_VALIDATOR.match(code) is None:
-		return forbidden()
+		code_info = db.getCode(code)
+		if code_info is None:
+			return forbidden()
 
-	code_info = db.getCode(code)
-	if code_info is None:
-		return forbidden()
+		user = db.getUserById(code_info.get('user_id'))
+		if user is None:
+			return forbidden()
 
-	user = db.getUserById(code_info.get('user_id'))
-	if user is None:
-		return forbidden()
-
-	user['email'] = code_info.get('email')
-	db.updateUser(user)
-	db.useCode(code_info.get('code'))
+		user['email'] = code_info.get('email')
+		db.updateUser(user)
+		db.useCode(code_info.get('code'))
 
 	return ok()
 
@@ -177,6 +180,7 @@ def ok():
 
 def forbidden():
 	return 'Forbidden', 403
+
 
 def sendmail(email, subject, message):
 	post = "\n\n\nNote: This is an automated email. " + \
@@ -188,6 +192,9 @@ def sendmail(email, subject, message):
 	], stdin=PIPE)
 	proc.communicate(input=bytes(message + post, 'UTF-8'))
 
+@app.teardown_appcontext
+def close_connection(exception):
+	db.closeDb()
 
 if __name__ == '__main__':
 	app.run(host=config['host'], port=config['port'], debug=config['debug'])

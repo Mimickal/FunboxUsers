@@ -7,6 +7,8 @@ from datetime import datetime
 
 import db
 
+from server import app
+
 @describe('Database Tests')
 def databaseTests():
 
@@ -29,23 +31,24 @@ def databaseTests():
 
 	def cleanup():
 		'''Removes the test data from the database'''
-		db.DB_CONN.execute('DELETE FROM Users WHERE name = ?', [test_name])
-		db.DB_CONN.execute(
+		db.getDb().execute('DELETE FROM Users WHERE name = ?', [test_name])
+		db.getDb().execute(
 			'DELETE FROM Codes WHERE code IN (?,?,?)',
 			[test_code1, test_code2, test_code3]
 		)
-		db.DB_CONN.commit()
+		db.getDb().commit()
 
 	def addTestUser(whole_row=False):
-		db.DB_CONN.execute('''
+		db.getDb().execute('''
 			INSERT INTO Users (
 				name, pass_hash, pass_salt, email
 			) VALUES (?, ?, ?, ?);
 		''', (test_name, test_hash, test_salt, test_email))
-		cursor = db.DB_CONN.execute(
+		cursor = db.getDb().execute(
 			'SELECT * FROM Users WHERE name = ?', [test_name]
 		)
 		row = cursor.fetchone()
+		db.getDb().commit()
 		if whole_row:
 			return row
 		else:
@@ -54,15 +57,17 @@ def databaseTests():
 
 	def addTestCode():
 		nonlocal test_id
-		db.DB_CONN.execute('''
+		db.getDb().execute('''
 			INSERT INTO Codes (type, code, user_id, email)
 			VALUES (?, ?, ?, ?)
 		''', [db.CODE_TYPE_EMAIL, test_code1, test_id, test_email])
+		db.getDb().commit()
 
 	def getTestCode(code):
-		return db.DB_CONN.execute(
-			'SELECT * FROM Codes WHERE code = ?', [code]
-		).fetchone()
+		with app.app_context():
+			return db.getDb().execute(
+				'SELECT * FROM Codes WHERE code = ?', [code]
+			).fetchone()
 
 	def assertDateNearNow(date):
 		'''Check that the given time is within a few seconds of now.'''
@@ -71,91 +76,100 @@ def databaseTests():
 
 	@before
 	def beforeAll():
-		cleanup()
+		with app.app_context():
+			cleanup()
 
 	@after
 	def afterAll():
-		cleanup()
+		with app.app_context():
+			cleanup()
 
 	@describe('Get User')
 	def getUser():
-
 		@beforeEach
 		def _beforeEach():
-			cleanup()
-			addTestUser()
+			with app.app_context():
+				cleanup()
+				addTestUser()
 
 		@it('User fields persisted')
 		def fieldsPreserved():
-			user = db.getUser(test_name)
-			assert_that(user.get('name'), equal_to(test_name))
-			assert_that(user.get('pass_hash'), equal_to(test_hash))
-			assert_that(user.get('pass_salt'), equal_to(test_salt))
-			assert_that(user.get('email'), equal_to(test_email))
+			with app.app_context():
+				user = db.getUser(test_name)
+				assert_that(user.get('name'), equal_to(test_name))
+				assert_that(user.get('pass_hash'), equal_to(test_hash))
+				assert_that(user.get('pass_salt'), equal_to(test_salt))
+				assert_that(user.get('email'), equal_to(test_email))
 
 		@it('None returned for non-existing user')
 		def noUserFound():
-			user = db.getUser('badname')
-			assert_that(user, none())
+			with app.app_context():
+				user = db.getUser('badname')
+				assert_that(user, none())
 
 	@describe('Add User')
 	def addUser():
 
 		@beforeEach
 		def _beforeEach():
-			cleanup()
+			with app.app_context():
+				cleanup()
 
 		@it('Fields preserved')
 		def fieldsPreserved():
-			db.addUser(test_user)
-			row = db.DB_CONN.execute('''
-				SELECT name, pass_hash, pass_salt, email
-				FROM Users WHERE name = ?
-			''', [test_name]).fetchone()
+			with app.app_context():
+				db.addUser(test_user)
+				row = db.getDb().execute('''
+					SELECT name, pass_hash, pass_salt, email
+					FROM Users WHERE name = ?
+				''', [test_name]).fetchone()
 
-			assert_that(row[0], equal_to(test_name))
-			assert_that(row[1], equal_to(test_hash))
-			assert_that(row[2], equal_to(test_salt))
-			assert_that(row[3], equal_to(test_email))
+				assert_that(row[0], equal_to(test_name))
+				assert_that(row[1], equal_to(test_hash))
+				assert_that(row[2], equal_to(test_salt))
+				assert_that(row[3], equal_to(test_email))
 
 		@it('Dates auto-populated')
 		def datesPopulated():
-			db.addUser(test_user)
-			row = db.DB_CONN.execute('''
-				SELECT created_at, updated_at, accessed_at
-				FROM Users WHERE name = ?
-			''', [test_name]).fetchone()
+			with app.app_context():
+				db.addUser(test_user)
+				row = db.getDb().execute('''
+					SELECT created_at, updated_at, accessed_at
+					FROM Users WHERE name = ?
+				''', [test_name]).fetchone()
 
-			assertDateNearNow(row[0])
-			assertDateNearNow(row[1])
-			#assertDateNearNow(row[2])
+				assertDateNearNow(row[0])
+				assertDateNearNow(row[1])
+				#assertDateNearNow(row[2])
 
 		@it('Cannot have multiple users with the same name')
 		def duplicateName():
-			db.addUser(test_user)
-			assert_that(
-				calling(db.addUser).with_args(test_user),
-				raises(IntegrityError, 'UNIQUE constraint failed: Users.name')
-			)
+			with app.app_context():
+				db.addUser(test_user)
+				assert_that(
+					calling(db.addUser).with_args(test_user),
+					raises(IntegrityError, 'UNIQUE constraint failed: Users.name')
+				)
 
 		@it('Password hash and salt required')
 		def hashAndSaltRequired():
-			assert_that(
-				calling(db.addUser).with_args({
-					'name': test_name,
-					'pass_hash': test_hash,
-					'pass_salt': None
-				}),
-				raises(IntegrityError, 'NOT NULL constraint failed: Users.pass_salt')
-			)
-			assert_that(
-				calling(db.addUser).with_args({
-					'name': test_name,
-					'pass_hash': None,
-					'pass_salt': test_salt
-				}),
-				raises(IntegrityError, 'NOT NULL constraint failed: Users.pass_hash')
-			)
+			with app.app_context():
+				assert_that(
+					calling(db.addUser).with_args({
+						'name': test_name,
+						'pass_hash': test_hash,
+						'pass_salt': None
+					}),
+					raises(IntegrityError, 'NOT NULL constraint failed: Users.pass_salt')
+				)
+				assert_that(
+					calling(db.addUser).with_args({
+						'name': test_name,
+						'pass_hash': None,
+						'pass_salt': test_salt
+					}),
+					raises(IntegrityError, 'NOT NULL constraint failed: Users.pass_hash')
+				)
 
 	@describe('Update User')
 	def updateUser():
@@ -165,55 +179,59 @@ def databaseTests():
 		@beforeEach
 		def _beforeEach():
 			nonlocal added_user
-			cleanup()
-			row = addTestUser(whole_row=True)
-			added_user = {
-				'id': row[0],
-				'name': row[1],
-				'pass_hash': row[2],
-				'pass_salt': row[3],
-				'email': row[4],
-				'created_at': row[5],
-				'updated_at': row[6],
-				'accessed_at': row[7]
-			}
+			with app.app_context():
+				cleanup()
+				row = addTestUser(whole_row=True)
+				added_user = {
+					'id': row[0],
+					'name': row[1],
+					'pass_hash': row[2],
+					'pass_salt': row[3],
+					'email': row[4],
+					'created_at': row[5],
+					'updated_at': row[6],
+					'accessed_at': row[7]
+				}
 
 		@it('Update user email preserves other fields')
 		def updatedUser():
 			nonlocal added_user
-			update_email = 'new@email.com'
-			added_user['email'] = update_email
-			res = db.updateUser(added_user)
-			updated_user = db.getUser(test_name)
+			with app.app_context():
+				update_email = 'new@email.com'
+				added_user['email'] = update_email
+				res = db.updateUser(added_user)
+				updated_user = db.getUser(test_name)
 
-			assert_that(updated_user.get('name'), equal_to(test_name))
-			assert_that(updated_user.get('pass_hash'), equal_to(test_hash))
-			assert_that(updated_user.get('pass_salt'), equal_to(test_salt))
-			assert_that(updated_user.get('email'), equal_to(update_email))
+				assert_that(updated_user.get('name'), equal_to(test_name))
+				assert_that(updated_user.get('pass_hash'), equal_to(test_hash))
+				assert_that(updated_user.get('pass_salt'), equal_to(test_salt))
+				assert_that(updated_user.get('email'), equal_to(update_email))
 
 		@it('Date modified changed on update')
 		def modifiedUpdated():
 			nonlocal added_user
 			sleep(1) # Delay to ensure modified time is different
-			db.updateUser(added_user)
+			with app.app_context():
+				db.updateUser(added_user)
 
-			update_user = db.getUser(test_name)
-			assert_that(
-				update_user.get('updated_at'),
-				not_(equal_to(added_user.get('updated_at')))
-			)
+				update_user = db.getUser(test_name)
+				assert_that(
+					update_user.get('updated_at'),
+					not_(equal_to(added_user.get('updated_at')))
+				)
 
 		@it('Date created not changed on update')
 		def createdNotUpdated():
 			nonlocal added_user
 			sleep(1) # Same here
-			db.updateUser(added_user)
+			with app.app_context():
+				db.updateUser(added_user)
 
-			update_user = db.getUser(test_name)
-			assert_that(
-				update_user.get('created_at'),
-				equal_to(added_user.get('created_at'))
-			)
+				update_user = db.getUser(test_name)
+				assert_that(
+					update_user.get('created_at'),
+					equal_to(added_user.get('created_at'))
+				)
 
 	@describe('Add Code')
 	def addCode():
@@ -221,57 +239,63 @@ def databaseTests():
 		@beforeEach
 		def _beforeEach():
 			nonlocal test_id
-			cleanup()
-			test_id = addTestUser()
+			with app.app_context():
+				cleanup()
+				test_id = addTestUser()
 
 		@it('None not allowed for code')
 		def codeNone():
 			nonlocal test_id
-			assert_that(
-				calling(db.addEmailCode).with_args(None, test_id, test_email),
-				raises(IntegrityError, 'NOT NULL constraint failed: Codes.code')
-			)
+			with app.app_context():
+				assert_that(
+					calling(db.addEmailCode).with_args(None, test_id, test_email),
+					raises(IntegrityError, 'NOT NULL constraint failed: Codes.code')
+				)
 
 		@it('Empty string not allowed for code')
 		def codeEmpty():
 			nonlocal test_id
-			assert_that(
-				calling(db.addEmailCode).with_args('', test_id, test_email),
-				raises(IntegrityError, 'CHECK constraint failed: Codes')
-			)
+			with app.app_context():
+				assert_that(
+					calling(db.addEmailCode).with_args('', test_id, test_email),
+					raises(IntegrityError, 'CHECK constraint failed: Codes')
+				)
 
 		@it('Duplicate codes not allowed')
 		def duplicate():
 			nonlocal test_id
-			db.addPasswordCode(test_code1, test_id)
-			assert_that(
-				calling(db.addEmailCode).with_args(test_code1, test_id, test_email),
-				raises(IntegrityError, 'UNIQUE constraint failed: Codes.code')
-			)
+			with app.app_context():
+				db.addPasswordCode(test_code1, test_id)
+				assert_that(
+					calling(db.addEmailCode).with_args(test_code1, test_id, test_email),
+					raises(IntegrityError, 'UNIQUE constraint failed: Codes.code')
+				)
 
 		@it('Email codes require email')
 		def emailNone():
 			nonlocal test_id
-			assert_that(
-				calling(db.addEmailCode).with_args(test_code1, test_id, None),
-				raises(IntegrityError, 'Email codes must define an email')
-			)
+			with app.app_context():
+				assert_that(
+					calling(db.addEmailCode).with_args(test_code1, test_id, None),
+					raises(IntegrityError, 'Email codes must define an email')
+				)
 
 		@it('Successfully added codes')
 		def codeAdded():
 			nonlocal test_id
-			db.addEmailCode(test_code1, test_id, test_email)
-			db.addPasswordCode(test_code2, test_id)
-			row = db.DB_CONN.execute(
-				'SELECT * FROM Codes WHERE code = ?', [test_code1]
-			).fetchone()
+			with app.app_context():
+				db.addEmailCode(test_code1, test_id, test_email)
+				db.addPasswordCode(test_code2, test_id)
+				row = db.getDb().execute(
+					'SELECT * FROM Codes WHERE code = ?', [test_code1]
+				).fetchone()
 
-			assert_that(row[0], equal_to(test_code1))
-			assert_that(row[1], equal_to(test_id))
-			# Ignore row[2]
-			assert_that(row[3], equal_to(test_email))
-			assertDateNearNow(row[4]) # created_at
-			assert_that(row[5], none()) # used_at
+				assert_that(row[0], equal_to(test_code1))
+				assert_that(row[1], equal_to(test_id))
+				# Ignore row[2]
+				assert_that(row[3], equal_to(test_email))
+				assertDateNearNow(row[4]) # created_at
+				assert_that(row[5], none()) # used_at
 
 	@describe('Get Code')
 	def getCode():
@@ -279,23 +303,26 @@ def databaseTests():
 		@beforeEach
 		def _beforeEach():
 			nonlocal test_id
-			cleanup()
-			test_id = addTestUser()
-			addTestCode()
+			with app.app_context():
+				cleanup()
+				test_id = addTestUser()
+				addTestCode()
 
 		@it('None returned for non-existing code')
 		def nonExisting():
-			code = db.getCode('badcode')
-			assert_that(code, none())
+			with app.app_context():
+				code = db.getCode('badcode')
+				assert_that(code, none())
 
 		@it('Code successfully retrieved')
 		def codeRetrieved():
 			nonlocal test_id
-			code = db.getCode(test_code1)
-			assert_that(code, not_none())
-			assert_that(code.get('code'), equal_to(test_code1))
-			assert_that(code.get('user_id'), equal_to(test_id))
-			assert_that(code.get('email'), equal_to(test_email))
+			with app.app_context():
+				code = db.getCode(test_code1)
+				assert_that(code, not_none())
+				assert_that(code.get('code'), equal_to(test_code1))
+				assert_that(code.get('user_id'), equal_to(test_id))
+				assert_that(code.get('email'), equal_to(test_email))
 
 	@describe('Use Code')
 	def useCode():
@@ -303,13 +330,15 @@ def databaseTests():
 		@beforeEach
 		def _beforeEach():
 			nonlocal test_id
-			cleanup()
-			test_id = addTestUser()
-			addTestCode()
+			with app.app_context():
+				cleanup()
+				test_id = addTestUser()
+				addTestCode()
 
 		@it('None returned for using non-existing code')
 		def nonExisting():
-			db.useCode('badcode')
+			with app.app_context():
+				db.useCode('badcode')
 			row = getTestCode('badcode')
 			assert_that(row, none())
 
@@ -318,7 +347,8 @@ def databaseTests():
 			row = getTestCode(test_code1)
 			assert_that(row[5], none()) # used_at
 
-			db.useCode(test_code1)
+			with app.app_context():
+				db.useCode(test_code1)
 
 			row = getTestCode(test_code1)
 			assertDateNearNow(row[5])
@@ -329,35 +359,36 @@ def databaseTests():
 		@beforeEach
 		def _beforeEach():
 			nonlocal test_id
-			cleanup()
-			test_id = addTestUser()
+			with app.app_context():
+				cleanup()
+				test_id = addTestUser()
 
 		@it('Old codes culled')
 		def oldCulled():
 			nonlocal test_id
-			codetype = db.CODE_TYPE_EMAIL
-			db.DB_CONN.execute('''
-				INSERT INTO Codes (type, code, user_id, email, created_at)
-				VALUES
-					(?, ?, ?, ?, DATETIME('now')),
-					(?, ?, ?, ?, DATETIME('now', '-1 days')),
-					(?, ?, ?, ?, DATETIME('now', '-3 days'));
-			''', [
-				codetype, test_code1, test_id, 'email1',
-				codetype, test_code2, test_id, 'email2',
-				codetype, test_code3, test_id, 'email3'
-			])
+			with app.app_context():
+				codetype = db.CODE_TYPE_EMAIL
+				db.getDb().execute('''
+					INSERT INTO Codes (type, code, user_id, email, created_at)
+					VALUES
+						(?, ?, ?, ?, DATETIME('now')),
+						(?, ?, ?, ?, DATETIME('now', '-1 days')),
+						(?, ?, ?, ?, DATETIME('now', '-3 days'));
+				''', [
+					codetype, test_code1, test_id, 'email1',
+					codetype, test_code2, test_id, 'email2',
+					codetype, test_code3, test_id, 'email3'
+				])
 
-			# Verify codes all exist
-			assert_that(db.getCode(test_code1), not_none())
-			assert_that(db.getCode(test_code2), not_none())
-			assert_that(db.getCode(test_code3), not_none())
+				# Verify codes all exist
+				assert_that(db.getCode(test_code1), not_none())
+				assert_that(db.getCode(test_code2), not_none())
+				assert_that(db.getCode(test_code3), not_none())
 
-			count = db.cullOldCodes()
+				count = db.cullOldCodes()
 
-			# Code #3 should be removed now
-			assert_that(count, equal_to(1))
-			assert_that(db.getCode(test_code1), not_none())
-			assert_that(db.getCode(test_code2), not_none())
-			assert_that(db.getCode(test_code3), none())
-
+				# Code #3 should be removed now
+				assert_that(count, equal_to(1))
+				assert_that(db.getCode(test_code1), not_none())
+				assert_that(db.getCode(test_code2), not_none())
+				assert_that(db.getCode(test_code3), none())
