@@ -1,14 +1,12 @@
 from pocha import describe, it, before, beforeEach, after
 from hamcrest import *
-from sqlite3 import IntegrityError
 import scrypt
 from time import mktime, sleep, time as now
-from datetime import datetime
+from peewee import IntegrityError
 
 import db
 from db import User, Code
 
-from server import app
 
 @describe('Database Tests')
 def databaseTests():
@@ -20,14 +18,6 @@ def databaseTests():
 	test_code1 = 'abcd'
 	test_code2 = '1234'
 	test_code3 = 'wxyz'
-
-
-#	test_user = {
-#		'name': test_name,
-#		'pass_hash': test_hash,
-#		'pass_salt': test_salt,
-#		'email': test_email
-#	}
 
 	test_user = None
 	test_id = None
@@ -42,11 +32,12 @@ def databaseTests():
 	def addTestUser():
 		nonlocal test_user
 		test_user = User.create(
-			name=test_name,
-			pass_hash=test_hash,
-			pass_salt=test_salt,
-			email=test_email
+			name      = test_name,
+			pass_hash = test_hash,
+			pass_salt = test_salt,
+			email     = test_email
 		)
+		return test_user
 
 #
 #	def addTestCode():
@@ -63,10 +54,8 @@ def databaseTests():
 #				'SELECT * FROM Codes WHERE code = ?', [code]
 #			).fetchone()
 #
-#	def assertDateNearNow(date):
-#		'''Check that the given time is within a few seconds of now.'''
-#		utime = mktime(datetime.strptime(date, "%Y-%m-%d %H:%M:%S").timetuple())
-#		assert_that(utime, close_to(now(), 5))
+	def assertDateNearNow(date):
+		assert_that(date.timestamp(), close_to(now(), 5))
 
 	@before
 	def beforeAll():
@@ -97,70 +86,55 @@ def databaseTests():
 			user = db.getUser('badname')
 			assert_that(user, is_(none()))
 
-#	@describe('Add User')
-#	def addUser():
-#
-#		@beforeEach
-#		def _beforeEach():
-#			with app.app_context():
-#				cleanup()
-#
-#		@it('Fields preserved')
-#		def fieldsPreserved():
-#			with app.app_context():
-#				db.addUser(test_user)
-#				row = db.getDb().execute('''
-#					SELECT name, pass_hash, pass_salt, email
-#					FROM Users WHERE name = ?
-#				''', [test_name]).fetchone()
-#
-#				assert_that(row[0], equal_to(test_name))
-#				assert_that(row[1], equal_to(test_hash))
-#				assert_that(row[2], equal_to(test_salt))
-#				assert_that(row[3], equal_to(test_email))
-#
-#		@it('Dates auto-populated')
-#		def datesPopulated():
-#			with app.app_context():
-#				db.addUser(test_user)
-#				row = db.getDb().execute('''
-#					SELECT created_at, updated_at, accessed_at
-#					FROM Users WHERE name = ?
-#				''', [test_name]).fetchone()
-#
-#				assertDateNearNow(row[0])
-#				assertDateNearNow(row[1])
-#				#assertDateNearNow(row[2])
-#
-#		@it('Cannot have multiple users with the same name')
-#		def duplicateName():
-#			with app.app_context():
-#				db.addUser(test_user)
-#				assert_that(
-#					calling(db.addUser).with_args(test_user),
-#					raises(IntegrityError, 'UNIQUE constraint failed: Users.name')
-#				)
-#
-#		@it('Password hash and salt required')
-#		def hashAndSaltRequired():
-#			with app.app_context():
-#				assert_that(
-#					calling(db.addUser).with_args({
-#						'name': test_name,
-#						'pass_hash': test_hash,
-#						'pass_salt': None
-#					}),
-#					raises(IntegrityError, 'NOT NULL constraint failed: Users.pass_salt')
-#				)
-#				assert_that(
-#					calling(db.addUser).with_args({
-#						'name': test_name,
-#						'pass_hash': None,
-#						'pass_salt': test_salt
-#					}),
-#					raises(IntegrityError, 'NOT NULL constraint failed: Users.pass_hash')
-#				)
-#
+	@describe('Add User')
+	def addUser():
+
+		@beforeEach
+		def _beforeEach():
+			cleanup()
+
+		@it('Fields preserved')
+		def fieldsPreserved():
+			user = addTestUser()
+			assert_that(user.name, equal_to(test_name))
+			assert_that(user.pass_hash, equal_to(test_hash))
+			assert_that(user.pass_salt, equal_to(test_salt))
+			assert_that(user.email, equal_to(test_email))
+
+		@it('Dates auto-populated')
+		def datesPopulated():
+			user = addTestUser()
+			assertDateNearNow(user.created_at)
+			assertDateNearNow(user.updated_at)
+			assertDateNearNow(user.accessed_at)
+
+		@it('Cannot have multiple users with the same name')
+		def duplicateName():
+			user = addTestUser()
+			assert_that(
+				calling(addTestUser),
+				raises(IntegrityError, 'UNIQUE constraint failed: user.name')
+			)
+
+		@it('Password hash and salt required')
+		def hashAndSaltRequired():
+			assert_that(
+				calling(User.create).with_args(
+					name      = test_name,
+					pass_hash = test_hash,
+					pass_salt = None
+				),
+				raises(IntegrityError, 'NOT NULL constraint failed: user.pass_salt')
+			)
+			assert_that(
+				calling(User.create).with_args(
+					name      = test_name,
+					pass_hash = None,
+					pass_salt = test_salt
+				),
+				raises(IntegrityError, 'NOT NULL constraint failed: user.pass_hash')
+			)
+
 #	@describe('Update User')
 #	def updateUser():
 #
