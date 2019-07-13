@@ -17,9 +17,9 @@ class User(BaseModel):
 	pass_hash   = BlobField(null=False)
 	pass_salt   = TextField(null=False)
 	email       = TextField(null=True)
-	created_at  = DateTimeField(default=datetime.now())
-	updated_at  = DateTimeField(default=datetime.now())
-	accessed_at = DateTimeField(default=datetime.now())
+	created_at  = DateTimeField(default=datetime.now)
+	updated_at  = DateTimeField(default=datetime.now)
+	accessed_at = DateTimeField(default=datetime.now)
 
 class Code(BaseModel):
 	code       = TextField(null=False, unique=True, constraints=[Check("code != ''")])
