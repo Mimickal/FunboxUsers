@@ -21,6 +21,13 @@ class User(BaseModel):
 	updated_at  = DateTimeField(default=datetime.now)
 	accessed_at = DateTimeField(default=datetime.now)
 
+	def get_by_name(name):
+		'''Gets a user by their name.'''
+		try:
+			return User.select().where(User.name == name).get()
+		except DoesNotExist:
+			return None
+
 	def save(self, *args, **kwargs):
 		timestamp = datetime.now()
 		self.updated_at = timestamp
@@ -37,13 +44,6 @@ class Code(BaseModel):
 
 db.connect()
 db.create_tables([User, Code])
-
-def getUser(name):
-	'''Gets a user by their name.'''
-	try:
-		return User.select().where(User.name == name).get()
-	except DoesNotExist:
-		return None
 
 
 #import sqlite3

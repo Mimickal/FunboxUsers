@@ -75,7 +75,7 @@ def databaseTests():
 
 		@it('User fields persisted')
 		def fieldsPreserved():
-			user = db.getUser(test_name)
+			user = User.get_by_name(test_name)
 			assert_that(user.name,      equal_to(test_name))
 			assert_that(user.pass_hash, equal_to(test_hash))
 			assert_that(user.pass_salt, equal_to(test_salt))
@@ -83,7 +83,7 @@ def databaseTests():
 
 		@it('None returned for non-existing user')
 		def noUserFound():
-			user = db.getUser('badname')
+			user = User.get_by_name('badname')
 			assert_that(user, is_(none()))
 
 	@describe('Add User')
