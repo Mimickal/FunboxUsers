@@ -135,68 +135,58 @@ def databaseTests():
 				raises(IntegrityError, 'NOT NULL constraint failed: user.pass_hash')
 			)
 
-#	@describe('Update User')
-#	def updateUser():
-#
-#		added_user = None
-#
-#		@beforeEach
-#		def _beforeEach():
-#			nonlocal added_user
-#			with app.app_context():
-#				cleanup()
-#				row = addTestUser(whole_row=True)
-#				added_user = {
-#					'id': row[0],
-#					'name': row[1],
-#					'pass_hash': row[2],
-#					'pass_salt': row[3],
-#					'email': row[4],
-#					'created_at': row[5],
-#					'updated_at': row[6],
-#					'accessed_at': row[7]
-#				}
-#
-#		@it('Update user email preserves other fields')
-#		def updatedUser():
-#			nonlocal added_user
-#			with app.app_context():
-#				update_email = 'new@email.com'
-#				added_user['email'] = update_email
-#				res = db.updateUser(added_user)
-#				updated_user = db.getUser(test_name)
-#
-#				assert_that(updated_user.get('name'), equal_to(test_name))
-#				assert_that(updated_user.get('pass_hash'), equal_to(test_hash))
-#				assert_that(updated_user.get('pass_salt'), equal_to(test_salt))
-#				assert_that(updated_user.get('email'), equal_to(update_email))
-#
-#		@it('Date modified changed on update')
-#		def modifiedUpdated():
-#			nonlocal added_user
-#			sleep(1) # Delay to ensure modified time is different
-#			with app.app_context():
-#				db.updateUser(added_user)
-#
-#				update_user = db.getUser(test_name)
-#				assert_that(
-#					update_user.get('updated_at'),
-#					not_(equal_to(added_user.get('updated_at')))
-#				)
-#
-#		@it('Date created not changed on update')
-#		def createdNotUpdated():
-#			nonlocal added_user
-#			sleep(1) # Same here
-#			with app.app_context():
-#				db.updateUser(added_user)
-#
-#				update_user = db.getUser(test_name)
-#				assert_that(
-#					update_user.get('created_at'),
-#					equal_to(added_user.get('created_at'))
-#				)
-#
+	@describe('Update User')
+	def updateUser():
+
+		@beforeEach
+		def _beforeEach():
+			nonlocal test_user
+			cleanup()
+			test_user = addTestUser()
+
+		@it('Update user email preserves other fields')
+		def updatedUser():
+			nonlocal test_user
+			update_email = 'new@email.com'
+			test_user.email = update_email
+			test_user.save()
+
+			updated_user = User.get_by_id(test_user.id)
+			assert_that(updated_user.name,      equal_to(test_name))
+			assert_that(updated_user.pass_hash, equal_to(test_hash))
+			assert_that(updated_user.pass_salt, equal_to(test_salt))
+			assert_that(updated_user.email,     equal_to(update_email))
+
+		@it('Date modified changed on update')
+		def modifiedUpdated():
+			nonlocal test_user
+			sleep(1) # Delay to ensure modified time is different
+			test_user.email = 'updated'
+			test_user.save()
+
+			updated_user = User.get_by_id(test_user.id)
+			assert_that(
+				updated_user.updated_at,
+				not_(equal_to(test_user.created_at))
+			)
+			assert_that(
+				updated_user.accessed_at,
+				equal_to(test_user.updated_at)
+			)
+
+		@it('Date created not changed on update')
+		def createdNotUpdated():
+			nonlocal test_user
+			sleep(1) # Same here
+			test_user.email = 'updated'
+			test_user.save()
+
+			updated_user = User.get_by_id(test_user.id)
+			assert_that(
+				updated_user.created_at,
+				equal_to(test_user.created_at)
+			)
+
 #	@describe('Add Code')
 #	def addCode():
 #

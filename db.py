@@ -21,6 +21,12 @@ class User(BaseModel):
 	updated_at  = DateTimeField(default=datetime.now)
 	accessed_at = DateTimeField(default=datetime.now)
 
+	def save(self, *args, **kwargs):
+		timestamp = datetime.now()
+		self.updated_at = timestamp
+		self.accessed_at = timestamp
+		super(User, self).save(*args, **kwargs)
+
 class Code(BaseModel):
 	code       = TextField(null=False, unique=True, constraints=[Check("code != ''")])
 	user_id    = ForeignKeyField(User, null=False)
