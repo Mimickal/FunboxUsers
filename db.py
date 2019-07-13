@@ -39,10 +39,6 @@ def getUser(name):
 	except DoesNotExist:
 		return None
 
-def getUserById(uid):
-	'''Gets a user by their DB assigned ID.'''
-	return User.select().where(User.id == uid).execute()
-
 
 #import sqlite3
 #from flask import g
