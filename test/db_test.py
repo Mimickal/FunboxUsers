@@ -39,14 +39,14 @@ def databaseTests():
 		)
 		return test_user
 
-#
-#	def addTestCode():
-#		nonlocal test_id
-#		db.getDb().execute('''
-#			INSERT INTO Codes (type, code, user_id, email)
-#			VALUES (?, ?, ?, ?)
-#		''', [db.CODE_TYPE_EMAIL, test_code1, test_id, test_email])
-#		db.getDb().commit()
+	def addTestCode():
+		nonlocal test_user
+		Code.create(
+			type  = 'email',
+			code  = test_code1,
+			user  = test_user,
+			email = test_email
+		)
 #
 #	def getTestCode(code):
 #		with app.app_context():
@@ -270,33 +270,29 @@ def databaseTests():
 			# Peewee gets the entire related model for foreign keys
 			assert_that(code.user, equal_to(test_user))
 
-#	@describe('Get Code')
-#	def getCode():
-#
-#		@beforeEach
-#		def _beforeEach():
-#			nonlocal test_id
-#			with app.app_context():
-#				cleanup()
-#				test_id = addTestUser()
-#				addTestCode()
-#
-#		@it('None returned for non-existing code')
-#		def nonExisting():
-#			with app.app_context():
-#				code = db.getCode('badcode')
-#				assert_that(code, none())
-#
-#		@it('Code successfully retrieved')
-#		def codeRetrieved():
-#			nonlocal test_id
-#			with app.app_context():
-#				code = db.getCode(test_code1)
-#				assert_that(code, not_none())
-#				assert_that(code.get('code'), equal_to(test_code1))
-#				assert_that(code.get('user_id'), equal_to(test_id))
-#				assert_that(code.get('email'), equal_to(test_email))
-#
+	@describe('Get Code')
+	def getCode():
+
+		@beforeEach
+		def _beforeEach():
+			cleanup()
+			addTestUser()
+			addTestCode()
+
+		@it('None returned for non-existing code')
+		def nonExisting():
+			code = Code.get_by_code('badcode')
+			assert_that(code, none())
+
+		@it('Code successfully retrieved')
+		def codeRetrieved():
+			nonlocal test_user
+			code = Code.get_by_code(test_code1)
+			assert_that(code,       is_(not_none()))
+			assert_that(code.code,  equal_to(test_code1))
+			assert_that(code.user,  equal_to(test_user))
+			assert_that(code.email, equal_to(test_email))
+
 #	@describe('Use Code')
 #	def useCode():
 #

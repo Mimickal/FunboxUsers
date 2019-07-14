@@ -53,8 +53,10 @@ class Code(BaseModel):
 		return Code.create(*args, **kwargs)
 
 	def get_by_code(code):
-		return Code.select().where(Code.code == code).get()
-
+		try:
+			return Code.select().where(Code.code == code).get()
+		except DoesNotExist:
+			return None
 
 db.connect()
 db.create_tables([User, Code])
