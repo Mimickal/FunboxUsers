@@ -9,7 +9,7 @@ import yaml
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-import db
+from db import User, Code
 import util
 
 EMAIL_VALIDATOR = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
@@ -77,16 +77,15 @@ def userLoginJson():
 
 
 def verifyLogin(username, password):
-	with app.app_context():
-		user = db.getUser(username)
+	user = User.get_by_name(username)
 
 	# Return 403 instead of a 404 to make list of users harder to brute force
 	if user is None:
 		return forbidden()
 
-	pw_hash = scrypt.hash(password, user.get('pass_salt'))
+	pw_hash = scrypt.hash(password, user.pass_salt)
 
-	if pw_hash == user.get('pass_hash'):
+	if pw_hash == user.pass_hash:
 		return ok()
 	else:
 		return forbidden()
@@ -95,52 +94,51 @@ def verifyLogin(username, password):
 @app.route('/update/email', methods=['PUT'])
 def addEmail():
 	global EMAIL_VALIDATOR
-	with app.app_context():
-		auth = request.authorization
-		user = db.getUser(auth.username)
-		email = request.get_data(as_text=True)
+	auth = request.authorization
+	user = User.get_by_name(auth.username)
+	email = request.get_data(as_text=True)
 
-		if user is None:
-			return forbidden()
+	if user is None:
+		return forbidden()
 
-		if EMAIL_VALIDATOR.match(email) is None:
-			return 'Invalid email', 400
+	if EMAIL_VALIDATOR.match(email) is None:
+		return 'Invalid email', 400
 
-		pw_hash = scrypt.hash(auth.password, user.get('pass_salt'))
+	pw_hash = scrypt.hash(auth.password, user.pass_salt)
 
-		if pw_hash == user.get('pass_hash'):
-			# Create an email verify code
-			code = makeUniqueCode()
-			db.addEmailCode(code, user.get('id'), email)
+	if pw_hash == user.pass_hash:
+		# Create an email verify code
+		code = makeUniqueCode()
+		Code.create_email(code=code, user=user, email=email)
 
-			# TODO we're hard coding this link for now
-			link = 'https://funbox.com.ru:20100/update/email/confirm/' + code
-			sendmail(email, 'Funbox Email Verification',
-				'Hello from funbox! Use this link to verify your email: ' + link)
+		# TODO we're hard coding this link for now
+		link = 'https://funbox.com.ru:20100/update/email/confirm/' + code
+		sendmail(email, 'Funbox Email Verification',
+			'Hello from funbox! Use this link to verify your email: ' + link)
 
-			return ok()
-		else:
-			return forbidden()
+		return ok()
+	else:
+		return forbidden()
 
 
 @app.route('/update/email/confirm/<code>', methods=['GET'])
 def confirmEmail(code):
 	global CODE_VALIDATOR
-	with app.app_context():
-		if CODE_VALIDATOR.match(code) is None:
-			return forbidden()
+	if CODE_VALIDATOR.match(code) is None:
+		return forbidden()
 
-		code_info = db.getCode(code)
-		if code_info is None:
-			return forbidden()
+	code_info = Code.get_by_code(code)
+	if code_info is None:
+		return forbidden()
 
-		user = db.getUserById(code_info.get('user_id'))
-		if user is None:
-			return forbidden()
+	user = code_info.user
+	# With peewee this shouldn't ever happen
+	if user is None:
+		return forbidden()
 
-		user['email'] = code_info.get('email')
-		db.updateUser(user)
-		db.useCode(code_info.get('code'))
+	user.email = code_info.email
+	user.save()
+	Code.use_code(code)
 
 	return ok()
 
@@ -157,7 +155,7 @@ def makeUniqueCode():
 	with app.app_context():
 		while True:
 			code = ''.join(choice(ascii_letters + digits) for _ in range(CODE_SIZE))
-			if db.getCode(code) is None:
+			if Code.get_by_code(code) is None:
 				return code
 
 def sendmail(email, subject, message):
@@ -170,9 +168,6 @@ def sendmail(email, subject, message):
 	], stdin=PIPE)
 	proc.communicate(input=bytes(message + post, 'UTF-8'))
 
-@app.teardown_appcontext
-def close_connection(exception):
-	db.closeDb()
 
 if __name__ == '__main__':
 	app.run(host=config['host'], port=config['port'], debug=config['debug'])

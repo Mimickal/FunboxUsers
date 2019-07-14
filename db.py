@@ -54,7 +54,10 @@ class Code(BaseModel):
 
 	def get_by_code(code):
 		try:
-			return Code.select().where(Code.code == code).get()
+			return Code.select().where(
+				Code.code == code,
+				Code.used_at == None
+			).get()
 		except DoesNotExist:
 			return None
 
