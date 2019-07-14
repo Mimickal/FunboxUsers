@@ -5,7 +5,6 @@ from time import sleep
 from datetime import datetime, timedelta
 from peewee import IntegrityError
 
-import db
 from db import User, Code
 
 
