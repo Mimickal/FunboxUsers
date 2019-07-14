@@ -187,70 +187,88 @@ def databaseTests():
 				equal_to(test_user.created_at)
 			)
 
-#	@describe('Add Code')
-#	def addCode():
-#
-#		@beforeEach
-#		def _beforeEach():
-#			nonlocal test_id
-#			with app.app_context():
-#				cleanup()
-#				test_id = addTestUser()
-#
-#		@it('None not allowed for code')
-#		def codeNone():
-#			nonlocal test_id
-#			with app.app_context():
-#				assert_that(
-#					calling(db.addEmailCode).with_args(None, test_id, test_email),
-#					raises(IntegrityError, 'NOT NULL constraint failed: Codes.code')
-#				)
-#
-#		@it('Empty string not allowed for code')
-#		def codeEmpty():
-#			nonlocal test_id
-#			with app.app_context():
-#				assert_that(
-#					calling(db.addEmailCode).with_args('', test_id, test_email),
-#					raises(IntegrityError, 'CHECK constraint failed: Codes')
-#				)
-#
-#		@it('Duplicate codes not allowed')
-#		def duplicate():
-#			nonlocal test_id
-#			with app.app_context():
-#				db.addPasswordCode(test_code1, test_id)
-#				assert_that(
-#					calling(db.addEmailCode).with_args(test_code1, test_id, test_email),
-#					raises(IntegrityError, 'UNIQUE constraint failed: Codes.code')
-#				)
-#
-#		@it('Email codes require email')
-#		def emailNone():
-#			nonlocal test_id
-#			with app.app_context():
-#				assert_that(
-#					calling(db.addEmailCode).with_args(test_code1, test_id, None),
-#					raises(IntegrityError, 'Email codes must define an email')
-#				)
-#
-#		@it('Successfully added codes')
-#		def codeAdded():
-#			nonlocal test_id
-#			with app.app_context():
-#				db.addEmailCode(test_code1, test_id, test_email)
-#				db.addPasswordCode(test_code2, test_id)
-#				row = db.getDb().execute(
-#					'SELECT * FROM Codes WHERE code = ?', [test_code1]
-#				).fetchone()
-#
-#				assert_that(row[0], equal_to(test_code1))
-#				assert_that(row[1], equal_to(test_id))
-#				# Ignore row[2]
-#				assert_that(row[3], equal_to(test_email))
-#				assertDateNearNow(row[4]) # created_at
-#				assert_that(row[5], none()) # used_at
-#
+	@describe('Add Code')
+	def addCode():
+
+		@beforeEach
+		def _beforeEach():
+			cleanup()
+			addTestUser()
+
+		@it('None not allowed for code')
+		def codeNone():
+			nonlocal test_user
+			assert_that(
+				calling(Code.create_email).with_args(
+					user_id = test_user.id,
+					email   = test_email,
+					code    = None
+				),
+				raises(IntegrityError, 'NOT NULL constraint failed: code.code')
+			)
+
+		@it('Empty string not allowed for code')
+		def codeEmpty():
+			nonlocal test_user
+			assert_that(
+				calling(Code.create_email).with_args(
+					user_id = test_user.id,
+					email   = test_email,
+					code    = ''
+				),
+				raises(IntegrityError, 'CHECK constraint failed: code')
+			)
+
+		@it('Duplicate codes not allowed')
+		def duplicate():
+			nonlocal test_user
+			Code.create_password(
+				user_id = test_user.id,
+				email   = test_email,
+				code    = test_code1
+			)
+			assert_that(
+				calling(Code.create_password).with_args(
+					user_id = test_user.id,
+					email   = test_email,
+					code    = test_code1
+				),
+				raises(IntegrityError, 'UNIQUE constraint failed: code.code')
+			)
+
+		@it('Email codes require email')
+		def emailNone():
+			nonlocal test_user
+			assert_that(
+				calling(Code.create_email).with_args(
+					user_id = test_user.id,
+					email   = None,
+					code    = test_code1
+				),
+				raises(IntegrityError, 'Email codes must define an email')
+			)
+
+		@it('Successfully added codes')
+		def codeAdded():
+			nonlocal test_user
+			Code.create_email(
+				user_id = test_user.id,
+				email   = test_email,
+				code    = test_code1
+			)
+			Code.create_password(
+				user_id = test_user.id,
+				email   = None,
+				code    = test_code2
+			)
+
+			code = Code.get_by_code(test_code1)
+			assert_that(code.code,    equal_to(test_code1))
+			assert_that(code.user_id, equal_to(test_user.id))
+			assert_that(code.email,   equal_to(test_email))
+			assert_that(code.used_at, is_(none()))
+			assertDateNearNow(code.created_at)
+
 #	@describe('Get Code')
 #	def getCode():
 #

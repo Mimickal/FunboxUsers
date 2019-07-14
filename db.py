@@ -32,7 +32,7 @@ class User(BaseModel):
 		timestamp = datetime.now()
 		self.updated_at = timestamp
 		self.accessed_at = timestamp
-		super(User, self).save(*args, **kwargs)
+		return super(User, self).save(*args, **kwargs)
 
 class Code(BaseModel):
 	code       = TextField(null=False, unique=True, constraints=[Check("code != ''")])
@@ -41,6 +41,20 @@ class Code(BaseModel):
 	email      = TextField(null=True)
 	created_at = DateTimeField(default=datetime.now())
 	used_at    = DateTimeField(null=True)
+
+	def create_email(*args, **kwargs):
+		if kwargs.get('email', None) is None:
+			raise IntegrityError('Email codes must define an email')
+		kwargs['type'] = 'email'
+		return Code.create(*args, **kwargs)
+
+	def create_password(*args, **kwargs):
+		kwargs['type'] = 'pass'
+		return Code.create(*args, **kwargs)
+
+	def get_by_code(code):
+		return Code.select().where(Code.code == code).get()
+
 
 db.connect()
 db.create_tables([User, Code])
