@@ -288,6 +288,12 @@ def databaseTests():
 			assert_that(code.user,  equal_to(test_user))
 			assert_that(code.email, equal_to(test_email))
 
+		@it('Getting used code')
+		def gettingUsedCode():
+			Code.use_code(test_code1)
+			assert_that(Code.get_by_code(test_code1), is_(none()))
+			assert_that(Code.get_by_code(test_code1, include_used=True), is_(not_none()))
+
 	@describe('Use Code')
 	def useCode():
 
@@ -310,7 +316,7 @@ def databaseTests():
 
 			Code.use_code(test_code1)
 
-			code = Code.get_by_code(test_code1)
+			code = Code.get_by_code(test_code1, include_used=True)
 			assertDateNearNow(code.used_at)
 
 	@describe('Cull Old Codes')
@@ -338,15 +344,15 @@ def databaseTests():
 			).execute()
 
 			# Verify codes all exist
-			assert_that(Code.get_by_code(test_code1), is_(not_none()))
-			assert_that(Code.get_by_code(test_code2), is_(not_none()))
-			assert_that(Code.get_by_code(test_code3), is_(not_none()))
+			assert_that(Code.get_by_code(test_code1, include_used=True), not_none())
+			assert_that(Code.get_by_code(test_code2, include_used=True), not_none())
+			assert_that(Code.get_by_code(test_code3, include_used=True), not_none())
 
 			num_removed = Code.cull_old_codes()
 
 			# Code #3 should be removed now
 			assert_that(num_removed, equal_to(1))
-			assert_that(Code.get_by_code(test_code1), is_(not_none()))
-			assert_that(Code.get_by_code(test_code2), is_(not_none()))
-			assert_that(Code.get_by_code(test_code3), is_(none()))
+			assert_that(Code.get_by_code(test_code1, include_used=True), not_none())
+			assert_that(Code.get_by_code(test_code2, include_used=True), not_none())
+			assert_that(Code.get_by_code(test_code3, include_used=True), none())
 

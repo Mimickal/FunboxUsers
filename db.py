@@ -52,24 +52,24 @@ class Code(BaseModel):
 		kwargs['type'] = 'pass'
 		return Code.create(*args, **kwargs)
 
-	def get_by_code(code):
+	def get_by_code(code, include_used=False):
+		query = Code.select().where(Code.code == code)
+		if not include_used:
+			query = query.where(Code.used_at.is_null())
 		try:
-			return Code.select().where(
-				Code.code == code,
-				Code.used_at == None
-			).get()
+			return query.get()
 		except DoesNotExist:
 			return None
 
 	def use_code(code):
 		'''Sets a code's used_at field, effectively marking it as used.'''
-		Code.update(used_at=datetime.now()).where(code == code).execute()
+		Code.update(used_at=datetime.now()).where(Code.code == code).execute()
 
 	def cull_old_codes():
 		'''Deletes all old, unused codes.'''
 		two_days_ago = datetime.now() - timedelta(days=2)
 		return Code.delete().where(
-			Code.used_at == None,
+			Code.used_at.is_null(),
 			Code.created_at < two_days_ago
 		).execute()
 
