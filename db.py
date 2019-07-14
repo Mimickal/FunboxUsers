@@ -36,7 +36,7 @@ class User(BaseModel):
 
 class Code(BaseModel):
 	code       = TextField(null=False, unique=True, constraints=[Check("code != ''")])
-	user_id    = ForeignKeyField(User, null=False)
+	user       = ForeignKeyField(User, null=False)
 	type       = TextField(null=False)
 	email      = TextField(null=True)
 	created_at = DateTimeField(default=datetime.now())

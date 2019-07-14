@@ -200,7 +200,7 @@ def databaseTests():
 			nonlocal test_user
 			assert_that(
 				calling(Code.create_email).with_args(
-					user_id = test_user.id,
+					user    = test_user,
 					email   = test_email,
 					code    = None
 				),
@@ -212,7 +212,7 @@ def databaseTests():
 			nonlocal test_user
 			assert_that(
 				calling(Code.create_email).with_args(
-					user_id = test_user.id,
+					user    = test_user,
 					email   = test_email,
 					code    = ''
 				),
@@ -223,13 +223,13 @@ def databaseTests():
 		def duplicate():
 			nonlocal test_user
 			Code.create_password(
-				user_id = test_user.id,
+				user    = test_user,
 				email   = test_email,
 				code    = test_code1
 			)
 			assert_that(
 				calling(Code.create_password).with_args(
-					user_id = test_user.id,
+					user    = test_user,
 					email   = test_email,
 					code    = test_code1
 				),
@@ -241,7 +241,7 @@ def databaseTests():
 			nonlocal test_user
 			assert_that(
 				calling(Code.create_email).with_args(
-					user_id = test_user.id,
+					user    = test_user,
 					email   = None,
 					code    = test_code1
 				),
@@ -252,22 +252,23 @@ def databaseTests():
 		def codeAdded():
 			nonlocal test_user
 			Code.create_email(
-				user_id = test_user.id,
+				user    = test_user,
 				email   = test_email,
 				code    = test_code1
 			)
 			Code.create_password(
-				user_id = test_user.id,
+				user    = test_user,
 				email   = None,
 				code    = test_code2
 			)
 
 			code = Code.get_by_code(test_code1)
 			assert_that(code.code,    equal_to(test_code1))
-			assert_that(code.user_id, equal_to(test_user.id))
 			assert_that(code.email,   equal_to(test_email))
 			assert_that(code.used_at, is_(none()))
 			assertDateNearNow(code.created_at)
+			# Peewee gets the entire related model for foreign keys
+			assert_that(code.user, equal_to(test_user))
 
 #	@describe('Get Code')
 #	def getCode():
