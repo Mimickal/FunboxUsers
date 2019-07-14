@@ -293,35 +293,31 @@ def databaseTests():
 			assert_that(code.user,  equal_to(test_user))
 			assert_that(code.email, equal_to(test_email))
 
-#	@describe('Use Code')
-#	def useCode():
-#
-#		@beforeEach
-#		def _beforeEach():
-#			nonlocal test_id
-#			with app.app_context():
-#				cleanup()
-#				test_id = addTestUser()
-#				addTestCode()
-#
-#		@it('None returned for using non-existing code')
-#		def nonExisting():
-#			with app.app_context():
-#				db.useCode('badcode')
-#			row = getTestCode('badcode')
-#			assert_that(row, none())
-#
-#		@it('Code successfully used')
-#		def usedCode():
-#			row = getTestCode(test_code1)
-#			assert_that(row[5], none()) # used_at
-#
-#			with app.app_context():
-#				db.useCode(test_code1)
-#
-#			row = getTestCode(test_code1)
-#			assertDateNearNow(row[5])
-#
+	@describe('Use Code')
+	def useCode():
+
+		@beforeEach
+		def _beforeEach():
+			cleanup()
+			addTestUser()
+			addTestCode()
+
+		@it('None returned for using non-existing code')
+		def nonExisting():
+			Code.use_code('badcode')
+			code = Code.get_by_code('badcode')
+			assert_that(code, is_(none()))
+
+		@it('Code successfully used')
+		def usedCode():
+			code = Code.get_by_code(test_code1)
+			assert_that(code.used_at, is_(none()))
+
+			Code.use_code(test_code1)
+
+			code = Code.get_by_code(test_code1)
+			assertDateNearNow(code.used_at)
+
 #	@describe('Cull Old Codes')
 #	def cullOldCodes():
 #

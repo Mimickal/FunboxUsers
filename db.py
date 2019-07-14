@@ -58,6 +58,10 @@ class Code(BaseModel):
 		except DoesNotExist:
 			return None
 
+	def use_code(code):
+		'''Sets a code's used_at field, effectively marking it as used.'''
+		Code.update(used_at=datetime.now()).where(code == code).execute()
+
 db.connect()
 db.create_tables([User, Code])
 
