@@ -5,7 +5,7 @@ DB_NAME = 'fbusers.db'
 CODE_TYPE_PASS = 'pass'
 CODE_TYPE_EMAIL = 'email'
 
-db = SqliteDatabase(DB_NAME)
+db = SqliteDatabase(DB_NAME, pragmas={'foreign_keys': 1})
 
 class BaseModel(Model):
 	class Meta:

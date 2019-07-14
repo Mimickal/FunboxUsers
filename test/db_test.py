@@ -24,10 +24,10 @@ def databaseTests():
 
 	def cleanup():
 		'''Removes the test data from the database'''
-		User.delete().where(User.name == test_name).execute()
 		Code.delete().where(Code.code.in_(
 			[test_code1, test_code2, test_code3]
 		)).execute()
+		User.delete().where(User.name == test_name).execute()
 
 	def addTestUser():
 		nonlocal test_user
