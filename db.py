@@ -1,5 +1,5 @@
 from peewee import *
-from datetime import datetime
+from datetime import datetime, timedelta
 
 DB_NAME = 'fbusers.db'
 CODE_TYPE_PASS = 'pass'
@@ -61,6 +61,14 @@ class Code(BaseModel):
 	def use_code(code):
 		'''Sets a code's used_at field, effectively marking it as used.'''
 		Code.update(used_at=datetime.now()).where(code == code).execute()
+
+	def cull_old_codes():
+		'''Deletes all old, unused codes.'''
+		two_days_ago = datetime.now() - timedelta(days=2)
+		return Code.delete().where(
+			Code.used_at == None,
+			Code.created_at < two_days_ago
+		).execute()
 
 db.connect()
 db.create_tables([User, Code])

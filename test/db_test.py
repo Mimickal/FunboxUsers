@@ -1,7 +1,8 @@
 from pocha import describe, it, before, beforeEach, after
 from hamcrest import *
 import scrypt
-from time import mktime, sleep, time as now
+from time import sleep
+from datetime import datetime, timedelta
 from peewee import IntegrityError
 
 import db
@@ -47,15 +48,9 @@ def databaseTests():
 			user  = test_user,
 			email = test_email
 		)
-#
-#	def getTestCode(code):
-#		with app.app_context():
-#			return db.getDb().execute(
-#				'SELECT * FROM Codes WHERE code = ?', [code]
-#			).fetchone()
-#
+
 	def assertDateNearNow(date):
-		assert_that(date.timestamp(), close_to(now(), 5))
+		assert_that(date.timestamp(), close_to(datetime.now().timestamp(), 5))
 
 	@before
 	def beforeAll():
@@ -318,42 +313,40 @@ def databaseTests():
 			code = Code.get_by_code(test_code1)
 			assertDateNearNow(code.used_at)
 
-#	@describe('Cull Old Codes')
-#	def cullOldCodes():
-#
-#		@beforeEach
-#		def _beforeEach():
-#			nonlocal test_id
-#			with app.app_context():
-#				cleanup()
-#				test_id = addTestUser()
-#
-#		@it('Old codes culled')
-#		def oldCulled():
-#			nonlocal test_id
-#			with app.app_context():
-#				codetype = db.CODE_TYPE_EMAIL
-#				db.getDb().execute('''
-#					INSERT INTO Codes (type, code, user_id, email, created_at)
-#					VALUES
-#						(?, ?, ?, ?, DATETIME('now')),
-#						(?, ?, ?, ?, DATETIME('now', '-1 days')),
-#						(?, ?, ?, ?, DATETIME('now', '-3 days'));
-#				''', [
-#					codetype, test_code1, test_id, 'email1',
-#					codetype, test_code2, test_id, 'email2',
-#					codetype, test_code3, test_id, 'email3'
-#				])
-#
-#				# Verify codes all exist
-#				assert_that(db.getCode(test_code1), not_none())
-#				assert_that(db.getCode(test_code2), not_none())
-#				assert_that(db.getCode(test_code3), not_none())
-#
-#				count = db.cullOldCodes()
-#
-#				# Code #3 should be removed now
-#				assert_that(count, equal_to(1))
-#				assert_that(db.getCode(test_code1), not_none())
-#				assert_that(db.getCode(test_code2), not_none())
-#				assert_that(db.getCode(test_code3), none())
+	@describe('Cull Old Codes')
+	def cullOldCodes():
+
+		@beforeEach
+		def _beforeEach():
+			cleanup()
+			addTestUser()
+
+		@it('Old codes culled')
+		def oldCulled():
+			nonlocal test_user
+			now = datetime.now()
+			three_days = timedelta(days=3)
+			Code.insert_many(
+				[
+					('pass', test_code1, test_user, None, now),
+					('pass', test_code2, test_user, now,  now - three_days),
+					('pass', test_code3, test_user, None, now - three_days),
+				],
+				fields=[
+					Code.type, Code.code, Code.user, Code.used_at, Code.created_at
+				]
+			).execute()
+
+			# Verify codes all exist
+			assert_that(Code.get_by_code(test_code1), is_(not_none()))
+			assert_that(Code.get_by_code(test_code2), is_(not_none()))
+			assert_that(Code.get_by_code(test_code3), is_(not_none()))
+
+			num_removed = Code.cull_old_codes()
+
+			# Code #3 should be removed now
+			assert_that(num_removed, equal_to(1))
+			assert_that(Code.get_by_code(test_code1), is_(not_none()))
+			assert_that(Code.get_by_code(test_code2), is_(not_none()))
+			assert_that(Code.get_by_code(test_code3), is_(none()))
+
