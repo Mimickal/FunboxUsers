@@ -5,10 +5,12 @@ import scrypt
 from base64 import b64encode
 import re
 import yaml
+from peewee import fn
 
 from server import app as server_app, limiter
 import util
-import db
+from db import User, Code
+
 
 def authHeader(username, password):
 	return {
@@ -20,20 +22,6 @@ def authHeader(username, password):
 def assertResponse(response, code, text, desc=None):
 	assert_that(response.status_code, equal_to(code), desc)
 	assert_that(response.get_data(as_text=True), equal_to(text), desc)
-
-# TODO Pocha doesn't currently support applying afterEach to nested
-# describe blocks, so we need this as a work-around for now.
-def cleanupUsers(name):
-	assert_that(name, not_none())
-	with server_app.app_context():
-		db.getDb().execute('DELETE FROM Users WHERE name = ?', [name])
-		db.getDb().commit()
-
-def cleanupCodes(code):
-	assert_that(code, not_none())
-	with server_app.app_context():
-		db.getDb().execute('DELETE FROM Codes WHERE code = ?', [code])
-		db.getDb().commit()
 
 @describe('Server Tests')
 def serverTests():
@@ -47,14 +35,10 @@ def serverTests():
 	test_pass = 'testpass'
 	test_code = 'Test1234'
 	test_email = 'test@email.com'
-	salt = 'saltything'
-	test_user = {
-		'name': test_name,
-		'pass_salt': salt,
-		'pass_hash': scrypt.hash(test_pass, salt)
-	}
+	test_salt = 'saltything'
+	test_hash = scrypt.hash(test_pass, test_salt)
 
-	test_id = None
+	test_user = None
 
 	# This is kind of awful but it works!
 	def getLoginCSRFToken():
@@ -62,6 +46,7 @@ def serverTests():
 		token = re.search(b'name="csrf_token" value="(.*)"', login.data)
 		return token.group(1).decode('utf-8')
 
+	# TODO can we move this?
 	def enableRateLimiter(is_enabled):
 		limiter.reset()
 		limiter.enabled = is_enabled
@@ -70,9 +55,30 @@ def serverTests():
 		with app.session_transaction() as session:
 			session.pop('login', None)
 
+	# TODO Pocha doesn't currently support applying afterEach to nested
+	# describe blocks, so we need this as a work-around for now.
+	def createTestUser():
+		nonlocal test_user
+		test_user = User.create(
+			name      = test_name,
+			pass_hash = test_hash,
+			pass_salt = test_salt,
+			email     = test_email
+		)
+		return test_user
+
+	def cleanupUsers():
+		nonlocal test_user
+		if test_user is not None:
+			test_user.delete_instance()
+
+	def cleanupCodes(code):
+		assert_that(code, not_none())
+		Code.delete().where(Code.code == code).execute()
+
 	@before
 	def _beforeAll():
-		cleanupUsers(test_name)
+		cleanupUsers()
 		cleanupCodes(test_code)
 		enableRateLimiter(False)
 
@@ -81,13 +87,12 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
-			with server_app.app_context():
-				db.addUser(test_user)
+			createTestUser()
 			enableRateLimiter(False)
 
 		@afterEach
 		def _afterEach():
-			cleanupUsers(test_name)
+			cleanupUsers()
 			removeLoginToken()
 
 		@it('User does not exist')
@@ -177,13 +182,12 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
-			with server_app.app_context():
-				db.addUser(test_user)
+			createTestUser()
 			enableRateLimiter(False)
 
 		@afterEach
 		def _afterEach():
-			cleanupUsers(test_name)
+			cleanupUsers()
 
 		@it('Successful login')
 		def goodLogin():
@@ -227,13 +231,12 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
-			with server_app.app_context():
-				db.addUser(test_user)
+			createTestUser()
 			enableRateLimiter(False)
 
 		@afterEach
 		def _afterEach():
-			cleanupUsers(test_name)
+			cleanupUsers()
 			removeLoginToken()
 
 		@it('Successful login')
@@ -333,13 +336,11 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
-			nonlocal test_id
-			with server_app.app_context():
-				test_id = db.addUser(test_user)
+			createTestUser()
 
 		@afterEach
 		def _afterEach():
-			cleanupUsers(test_name)
+			cleanupUsers()
 
 		@it('User does not exist')
 		def userDoesNotExist():
@@ -383,8 +384,7 @@ def serverTests():
 			match = re.search(r'email\/confirm\/(\w{8})', args[2])
 			assert_that(match, not_none())
 			code = match.groups()[0]
-			with server_app.app_context():
-				assert_that(db.getCode(code), not_none())
+			assert_that(Code.get_by_code(code), not_none())
 
 			cleanupCodes(code)
 
@@ -393,15 +393,14 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
-			nonlocal test_id
-			with server_app.app_context():
-				test_id = db.addUser(test_user)
-				db.addEmailCode(test_code, test_id, test_email)
+			nonlocal test_user
+			createTestUser()
+			Code.create_email(code=test_code, user=test_user, email=test_email)
 
 		@afterEach
 		def _afterEach():
-			cleanupUsers(test_name)
 			cleanupCodes(test_code)
+			cleanupUsers()
 
 		@it('Attempting to confirm bad code')
 		def confirmBadCode():
@@ -419,36 +418,37 @@ def serverTests():
 
 		@it('Attempting to confirm a used code')
 		def confirmUsedCode():
-			nonlocal test_id
-			with server_app.app_context():
-				db.useCode(test_code)
-				response = app.get('/update/email/confirm/' + test_code)
-				assertResponse(response, 403, 'Forbidden')
+			nonlocal test_user
+			test_user.email = None
+			test_user.save()
 
-				user = db.getUserById(test_id)
-				assert_that(user.get('email', None), none())
+			Code.use_code(test_code)
+			response = app.get('/update/email/confirm/' + test_code)
+			assertResponse(response, 403, 'Forbidden')
 
-		@it('Attempting to confirm code for a deleted user')
-		def confirmCodeDeletedUser():
-			nonlocal test_id
-			with server_app.app_context():
-				db.getDb().execute('DELETE FROM Users WHERE id = ?', [test_id])
-				db.getDb().commit()
+			user = User.get_by_id(test_user.id)
+			assert_that(user.email, is_(none()))
 
-				response = app.get('/update/email/confirm/' + test_code)
-				assertResponse(response, 403, 'Forbidden')
-				assert_that(db.getUserById(test_id), none())
+		# Can't actually delete a user with codes without getting a
+		# ForeignKey constraint exception from SQLite.
+		# TODO maybe we don't need this test (or make some other test)?
+		#@it('Attempting to confirm code for a deleted user')
+		#def confirmCodeDeletedUser():
+		#	nonlocal test_user
+		#	cleanupUsers()
+		#	response = app.get('/update/email/confirm/' + test_code)
+		#	assertResponse(response, 403, 'Forbidden')
+		#	assert_that(User.get_by_name(test_name), is_(none()))
 
 		@it('Successfully confirm email via code')
 		def emailAdded():
-			nonlocal test_id
+			nonlocal test_user
 			response = app.get('/update/email/confirm/' + test_code)
 			assertResponse(response, 200, 'Ok')
 
-			with server_app.app_context():
-				user = db.getUserById(test_id)
-				assert_that(user.get('email'), equal_to(test_email))
-				assert_that(db.getCode(test_code), none())
+			user = User.get_by_id(test_user.id)
+			assert_that(user.email, equal_to(test_email))
+			assert_that(Code.get_by_code(test_code), is_(none()))
 
 	@describe('Generic Error')
 	def genericError():
