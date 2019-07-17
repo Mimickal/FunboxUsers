@@ -70,14 +70,13 @@ class Code(BaseModel):
 			Code.created_at < two_days_ago
 		).execute()
 
+	def num_codes_with_len(length):
+		'''Returns the number of codes with the given length'''
+		return Code                                \
+			.select(fn.COUNT(1).alias('count'))    \
+			.where(fn.LENGTH(Code.code) == length) \
+			.get().count
+
 db.connect()
 db.create_tables([User, Code])
-
-def getNumCodesWithLength(length):
-	'''Returns the number of codes with the given length'''
-	cursor = getDb().execute('''
-		SELECT COUNT(1) FROM Codes
-		WHERE LENGTH(code) == ?;
-	''', [length])
-	return cursor.fetchone()[0]
 

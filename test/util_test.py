@@ -2,10 +2,10 @@ from pocha import describe, it, beforeEach, afterEach
 from hamcrest import *
 import os
 import shutil
+from peewee import fn
 
 import util
-import db
-from server import app
+from db import User, Code
 
 @describe('Util Tests')
 def utilTests():
@@ -83,60 +83,60 @@ def utilTests():
 	@describe('makeUniqueCode')
 	def test_makeUniqueCode():
 
+		test_user = None
 		added_codes = []
+
+		@beforeEach
+		def createUser():
+			nonlocal test_user
+			test_user = User.create(
+				name='test', pass_hash='hash', pass_salt='salt'
+			)
 
 		@afterEach
 		def cleanupCodes():
+			nonlocal test_user
 			nonlocal added_codes
-			with app.app_context():
-				db_conn = db.getDb()
-				db_conn.execute('''
-						DELETE FROM Codes WHERE code IN ({})
-					'''.format(','.join( ['?'] * len(added_codes) )),
-					added_codes
-				)
-				db_conn.commit()
+			Code.delete().where(Code.code.in_(added_codes)).execute()
+			test_user.delete_instance()
+			test_user = None
 
-		@it('Codes are unique')
-		def codesAreUnique():
+		@it('Ensures unique codes')
+		def codesUnique():
 			nonlocal added_codes
+			nonlocal test_user
 
-			with app.app_context():
-				# Add a bunch of codes
-				num_codes = 10
-				user_id = 1 # This works even if user_id doesn't exist
-				for _ in range(num_codes):
-					code = util.makeUniqueCode(8)
-					# FIXME remove this and make makeUniqueCode add the code
-					db.addEmailCode(code, user_id, 'test@email.com')
-					added_codes.append(code)
+			# Add a bunch of codes
+			num_codes = 10
+			added_codes = []
+			for _ in range(num_codes):
+				code = util.makeUniqueCode(8)
+				Code.create_email(code=code, user=test_user, email='a@email')
+				added_codes.append(code)
 
-				# Verify that all codes were added and unique
-				cursor = db.getDb().execute('''
-						SELECT DISTINCT count(1)
-						FROM Codes
-						WHERE code IN ({})
-					'''.format(','.join(['?'] * num_codes)),
-					added_codes
-				) # ^^^ Yes, python actually needs this jank^^^
-				codes_added = cursor.fetchone()[0]
-
-				assert_that(codes_added, equal_to(num_codes))
+			# Verify that all codes were added and unique
+			codes_added = Code                      \
+				.select(fn.COUNT(1).alias('count')) \
+				.distinct()                         \
+				.where(Code.code.in_(added_codes))  \
+				.get()                              \
+				.count
+			assert_that(codes_added, equal_to(num_codes))
 
 		@it('Detect when there are no more unique combinations')
 		def notEnoughUniqueCodes():
 			nonlocal added_codes
+			nonlocal test_user
 
-			with app.app_context():
-				num_codes = len(util.CODE_CHARS)
-				for _ in range(num_codes):
-					code = util.makeUniqueCode(1)
-					# TODO remove this and make makeUniqueCode add the code
-					db.addEmailCode(code, 1, 'test@email.com')
-					added_codes.append(code)
+			num_codes = len(util.CODE_CHARS)
+			for _ in range(num_codes):
+				code = util.makeUniqueCode(1)
+				# TODO remove this and make makeUniqueCode add the code
+				Code.create_email(code=code, user=test_user, email='a@email')
+				added_codes.append(code)
 
-				assert_that(
-					calling(util.makeUniqueCode).with_args(1),
-					raises(Exception, 'No remaining unique codes available of length 1')
-				)
+			assert_that(
+				calling(util.makeUniqueCode).with_args(1),
+				raises(Exception, 'No remaining unique codes available of length 1')
+			)
 

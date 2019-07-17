@@ -138,7 +138,7 @@ def addEmail():
 
 	if pw_hash == user.pass_hash:
 		# Create an email verify code
-		code = makeUniqueCode()
+		code = util.makeUniqueCode(CODE_SIZE)
 		Code.create_email(code=code, user=user, email=email)
 
 		# TODO we're hard coding this link for now

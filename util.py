@@ -2,7 +2,7 @@ import os
 import string
 from random import choice
 
-import db
+from db import User, Code
 
 SECRET_SIZE = 32
 CODE_CHARS = string.ascii_letters + string.digits
@@ -42,13 +42,13 @@ def makeUniqueCode(length):
 
 	# Catch the absurdly unlikely case that we actually run out of codes
 	max_combos = len(CODE_CHARS) ** length
-	current_combos = db.getNumCodesWithLength(length)
+	current_combos = Code.num_codes_with_len(length)
 	if current_combos >= max_combos:
 		raise Exception('No remaining unique codes available of length %d' % length)
 
 	# Bootleg do-while. Thanks Python.
 	while True:
 		code = makeCode(length)
-		if db.getCode(code) is None:
+		if Code.get_by_code(code) is None:
 			return code
 
