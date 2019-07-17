@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, session
 from flask_wtf.csrf import CSRFProtect, CSRFError
 import scrypt
 import re
@@ -15,6 +15,7 @@ import util
 EMAIL_VALIDATOR = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
 CODE_VALIDATOR = re.compile(r'^(\w{8})$')
 CODE_SIZE = 8
+LOGIN_COOKIE_SIZE = 16
 
 app = Flask('Funbox Accounts')
 app.secret_key = util.getSecretKey('secret.key')
@@ -22,7 +23,7 @@ app.secret_key = util.getSecretKey('secret.key')
 config = yaml.safe_load(open('config.yaml'))
 
 csrf = CSRFProtect(app)
-app.config['WTF_CSRF_ENABLED'] = False
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 
 limiter = Limiter(app, key_func=get_remote_address)
 login_limit = limiter.shared_limit(config['rate_login'], scope='login')
@@ -57,8 +58,16 @@ def getLogin():
 @app.route('/login/form', methods=['POST'])
 def userLoginForm():
 	csrf.protect()
+
+	# form will never be None, otherwise CSRF protection will trigger
 	form = request.form
-	return verifyLogin(form.get('username'), form.get('password'))
+	try:
+		username = form['username']
+		password = form['password']
+	except KeyError:
+		return 'Missing username / password in form body', 400
+
+	return verifyLogin(username, password, cookie=True)
 
 
 @login_limit
@@ -73,10 +82,27 @@ def userLoginBasic():
 def userLoginJson():
 	csrf.protect()
 	json = request.json
-	return verifyLogin(json['username'], json['password'])
+
+	if json is None:
+		return 'Missing JSON body', 400
+
+	try:
+		username = json['username']
+		password = json['password']
+	except KeyError:
+		return 'Missing username / password in JSON body', 400
+	except TypeError:
+		return 'Malformed JSON body', 400
+
+	return verifyLogin(username, password, cookie=True)
 
 
-def verifyLogin(username, password):
+def verifyLogin(username, password, cookie=False):
+	global LOGIN_COOKIE_SIZE
+
+	if session.get('login', None) is not None:
+		return 'Already logged in', 400
+
 	user = User.get_by_name(username)
 
 	# Return 403 instead of a 404 to make list of users harder to brute force
@@ -86,6 +112,8 @@ def verifyLogin(username, password):
 	pw_hash = scrypt.hash(password, user.pass_salt)
 
 	if pw_hash == user.pass_hash:
+		if cookie:
+			session['login'] = util.makeUniqueCode(LOGIN_COOKIE_SIZE)
 		return ok()
 	else:
 		return forbidden()
@@ -94,6 +122,8 @@ def verifyLogin(username, password):
 @app.route('/update/email', methods=['PUT'])
 def addEmail():
 	global EMAIL_VALIDATOR
+	global CODE_SIZE
+
 	auth = request.authorization
 	user = User.get_by_name(auth.username)
 	email = request.get_data(as_text=True)
@@ -108,7 +138,7 @@ def addEmail():
 
 	if pw_hash == user.pass_hash:
 		# Create an email verify code
-		code = makeUniqueCode()
+		code = util.makeUniqueCode(CODE_SIZE)
 		Code.create_email(code=code, user=user, email=email)
 
 		# TODO we're hard coding this link for now
@@ -149,14 +179,6 @@ def ok():
 def forbidden():
 	return 'Forbidden', 403
 
-def makeUniqueCode():
-	global CODE_SIZE
-	# Bootleg do-while. Thanks Python.
-	with app.app_context():
-		while True:
-			code = ''.join(choice(ascii_letters + digits) for _ in range(CODE_SIZE))
-			if Code.get_by_code(code) is None:
-				return code
 
 def sendmail(email, subject, message):
 	post = "\n\n\nNote: This is an automated email. " + \

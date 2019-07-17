@@ -7,8 +7,10 @@ import re
 import yaml
 from peewee import fn
 
-from server import app as server_app, makeUniqueCode, limiter
+from server import app as server_app, limiter
+import util
 from db import User, Code
+
 
 def authHeader(username, password):
 	return {
@@ -49,6 +51,10 @@ def serverTests():
 		limiter.reset()
 		limiter.enabled = is_enabled
 
+	def removeLoginToken():
+		with app.session_transaction() as session:
+			session.pop('login', None)
+
 	# TODO Pocha doesn't currently support applying afterEach to nested
 	# describe blocks, so we need this as a work-around for now.
 	def createTestUser():
@@ -70,7 +76,6 @@ def serverTests():
 		assert_that(code, not_none())
 		Code.delete().where(Code.code == code).execute()
 
-
 	@before
 	def _beforeAll():
 		cleanupUsers()
@@ -88,6 +93,7 @@ def serverTests():
 		@afterEach
 		def _afterEach():
 			cleanupUsers()
+			removeLoginToken()
 
 		@it('User does not exist')
 		def noUser():
@@ -109,12 +115,16 @@ def serverTests():
 
 		@it('Successful login')
 		def goodLogin():
+			with app.session_transaction() as session:
+				assert_that(session.get('login', None), is_(none()))
 			response = app.post('/login/form', data={
 				'csrf_token': getLoginCSRFToken(),
 				'username': test_name,
 				'password': test_pass
 			})
 			assertResponse(response, 200, 'Ok')
+			with app.session_transaction() as session:
+				assert_that(session.get('login', None), is_not(none()))
 
 		@it('Missing CSRF token')
 		def missingCSRFToken():
@@ -124,19 +134,21 @@ def serverTests():
 			})
 			assertResponse(response, 400, 'Session expired. Reload and try again')
 
-		@it('Empty body')
+		@it('Empty and invalid body')
 		def emptyBody():
+			data = { 'csrf_token': getLoginCSRFToken() }
 			res1 = app.post('/login/form')
 			res2 = app.post('/login/form', data={})
-			res3 = app.post('/login/form', json={})
+			res3 = app.post('/login/form', data=data)
+			res4 = app.post('/login/form', data='I am not json')
+			res5 = app.post('/login/form', json={})
+			res6 = app.post('/login/form', json=data)
 			assertResponse(res1, 400, 'Session expired. Reload and try again')
 			assertResponse(res2, 400, 'Session expired. Reload and try again')
-			assertResponse(res3, 400, 'Session expired. Reload and try again')
-
-		@it('Non-json body')
-		def incorrectData():
-			res = app.post('/login/form', data='I am not json')
-			assertResponse(res, 400, 'Session expired. Reload and try again')
+			assertResponse(res3, 400, 'Missing username / password in form body')
+			assertResponse(res4, 400, 'Session expired. Reload and try again')
+			assertResponse(res5, 400, 'Session expired. Reload and try again')
+			assertResponse(res6, 400, 'Session expired. Reload and try again')
 
 		@it('Hitting rate limit')
 		def rateLimit():
@@ -144,15 +156,26 @@ def serverTests():
 			data = {
 				'csrf_token': getLoginCSRFToken(),
 				'username': test_name,
-				'password': test_pass
+				'password': 'bad pass'
 			}
 			for i in range(rate_login):
 				res = app.post('/login/form', data=data)
-				assertResponse(res, 200, 'Ok',
+				assertResponse(res, 403, 'Forbidden',
 					'Prematurely hit limit at %d/%d requests' % (i + 1, rate_login)
 				)
 			res = app.post('/login/form', data=data)
 			assertResponse(res, 429, 'Too many requests')
+
+		@it('Already have a login cookie')
+		def alreadyHaveLogin():
+			with app.session_transaction() as session:
+				session['login'] = 'test token'
+			res = app.post('/login/form', data={
+				'csrf_token': getLoginCSRFToken(),
+				'username': test_name,
+				'password': test_pass
+			})
+			assertResponse(res, 400, 'Already logged in')
 
 	@describe('Login basic auth')
 	def loginBasic():
@@ -194,10 +217,10 @@ def serverTests():
 		@it('Hitting rate limit')
 		def rateLimit():
 			enableRateLimiter(True)
-			headers = authHeader(test_name, test_pass)
+			headers = authHeader(test_name, 'bad pass')
 			for i in range(rate_login):
 				res = app.post('/login/basic', headers=headers)
-				assertResponse(res, 200, 'Ok',
+				assertResponse(res, 403, 'Forbidden',
 					'Prematurely hit limit at %d/%d requests' % (i + 1, rate_login)
 				)
 			res = app.post('/login/basic', headers=headers)
@@ -214,9 +237,12 @@ def serverTests():
 		@afterEach
 		def _afterEach():
 			cleanupUsers()
+			removeLoginToken()
 
 		@it('Successful login')
 		def goodLogin():
+			with app.session_transaction() as session:
+				assert_that(session.get('login', None), is_(none()))
 			response = app.post('/login/json',
 				headers={ 'X-CSRFToken': getLoginCSRFToken() },
 				json={
@@ -225,6 +251,8 @@ def serverTests():
 				}
 			)
 			assertResponse(response, 200, 'Ok')
+			with app.session_transaction() as session:
+				assert_that(session.get('login', None), is_not(none()))
 
 		@it('User does not exist')
 		def userDoesNotExist():
@@ -256,21 +284,23 @@ def serverTests():
 			})
 			assertResponse(response, 400, 'Session expired. Reload and try again')
 
-		@it('Empty body')
+		@it('Empty and invalid body')
 		def emptyBody():
 			headers = { 'X-CSRFToken': getLoginCSRFToken() }
-			res1 = app.post('/login/form', headers=headers)
-			res2 = app.post('/login/form', headers=headers, data={})
-			res3 = app.post('/login/form', headers=headers, json={})
-			assertResponse(res1, 403, 'Forbidden')
-			assertResponse(res2, 403, 'Forbidden')
-			assertResponse(res3, 403, 'Forbidden')
-
-		@it('Non-json body')
-		def incorrectData():
-			headers = { 'X-CSRFToken': getLoginCSRFToken() }
-			res = app.post('/login/form', headers=headers, data='I am not json')
-			assertResponse(res, 403, 'Forbidden')
+			res1 = app.post('/login/json', headers=headers)
+			res2 = app.post('/login/json', headers=headers, data={})
+			res3 = app.post('/login/json', headers=headers, data=None)
+			res4 = app.post('/login/json', headers=headers, json={})
+			res5 = app.post('/login/json', headers=headers, json=None)
+			res6 = app.post('/login/json', headers=headers, json='I am not json')
+			res7 = app.post('/login/json', headers=headers, json=1234)
+			assertResponse(res1, 400, 'Missing JSON body')
+			assertResponse(res2, 400, 'Missing JSON body')
+			assertResponse(res3, 400, 'Missing JSON body')
+			assertResponse(res4, 400, 'Missing username / password in JSON body')
+			assertResponse(res5, 400, 'Missing JSON body')
+			assertResponse(res6, 400, 'Malformed JSON body')
+			assertResponse(res7, 400, 'Malformed JSON body')
 
 		@it('Hitting rate limit')
 		def rateLimit():
@@ -278,15 +308,28 @@ def serverTests():
 			headers = { 'X-CSRFToken': getLoginCSRFToken() }
 			json = {
 				'username': test_name,
-				'password': test_pass
+				'password': 'bad pass'
 			}
 			for i in range(rate_login):
 				res = app.post('/login/json', headers=headers, json=json)
-				assertResponse(res, 200, 'Ok',
+				assertResponse(res, 403, 'Forbidden',
 					'Prematurely hit limit at %d/%d requests' % (i + 1, rate_login)
 				)
 			res = app.post('/login/json', headers=headers, json=json)
 			assertResponse(res, 429, 'Too many requests')
+
+		@it('Already have a login cookie')
+		def alreadyHaveLogin():
+			with app.session_transaction() as session:
+				session['login'] = 'test token'
+
+			headers = { 'X-CSRFToken': getLoginCSRFToken() }
+			json = {
+				'username': test_name,
+				'password': test_pass
+			}
+			res = app.post('/login/json', headers=headers, json=json)
+			assertResponse(res, 400, 'Already logged in')
 
 	@describe('Add Email')
 	def addEmail():
@@ -344,30 +387,6 @@ def serverTests():
 			assert_that(Code.get_by_code(code), not_none())
 
 			cleanupCodes(code)
-
-		@it('Ensures unique codes')
-		def codesUnique():
-			nonlocal test_user
-
-			# Add a bunch of codes
-			num_codes = 10
-			added_codes = []
-			for _ in range(num_codes):
-				code = makeUniqueCode()
-				Code.create_email(code=code, user=test_user, email='test@email.com')
-				added_codes.append(code)
-
-			# Verify that all codes were added and unique
-			codes_added = Code                      \
-				.select(fn.COUNT(4).alias('count')) \
-				.distinct()                         \
-				.where(Code.code in added_codes)    \
-				.get()                              \
-				.count
-			assert_that(codes_added, equal_to(num_codes))
-
-			# Cleanup
-			Code.delete().where(Code.code in added_codes).execute()
 
 	@describe('Confirm Code')
 	def confirmCode():
