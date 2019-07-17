@@ -2,3 +2,4 @@ flask
 scrypt
 Flask-WTF
 flask-limiter
+peewee
