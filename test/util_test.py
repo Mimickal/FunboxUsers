@@ -57,7 +57,7 @@ def utilTests():
 		@it('Length is respected')
 		def lengthRespected():
 			size = 12
-			code = util.makeCode(12)
+			code = util.makeCode(size)
 			assert_that(code, has_length(size))
 
 		@it('0 length')
