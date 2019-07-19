@@ -1,4 +1,4 @@
-from pocha import describe, it, before, beforeEach, after
+from pocha import describe, it, before, beforeEach
 from hamcrest import *
 import scrypt
 from time import sleep
@@ -47,10 +47,6 @@ def databaseTests():
 
 	@before
 	def beforeAll():
-		testutil.clearDatabase()
-
-	@after
-	def afterAll():
 		testutil.clearDatabase()
 
 	@describe('Get User')

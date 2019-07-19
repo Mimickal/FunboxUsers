@@ -78,12 +78,12 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
+			testutil.clearDatabase()
 			createTestUser()
 			enableRateLimiter(False)
 
 		@afterEach
 		def _afterEach():
-			testutil.clearDatabase()
 			removeLoginToken()
 
 		@it('User does not exist')
@@ -173,12 +173,9 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
+			testutil.clearDatabase()
 			createTestUser()
 			enableRateLimiter(False)
-
-		@afterEach
-		def _afterEach():
-			testutil.clearDatabase()
 
 		@it('Successful login')
 		def goodLogin():
@@ -222,12 +219,12 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
+			testutil.clearDatabase()
 			createTestUser()
 			enableRateLimiter(False)
 
 		@afterEach
 		def _afterEach():
-			testutil.clearDatabase()
 			removeLoginToken()
 
 		@it('Successful login')
@@ -327,11 +324,8 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
-			createTestUser()
-
-		@afterEach
-		def _afterEach():
 			testutil.clearDatabase()
+			createTestUser()
 
 		@it('User does not exist')
 		def userDoesNotExist():
@@ -383,12 +377,9 @@ def serverTests():
 		@beforeEach
 		def _beforeEach():
 			nonlocal test_user
+			testutil.clearDatabase()
 			createTestUser()
 			Code.create_email(code=test_code, user=test_user, email=test_email)
-
-		@afterEach
-		def _afterEach():
-			testutil.clearDatabase()
 
 		@it('Attempting to confirm bad code')
 		def confirmBadCode():

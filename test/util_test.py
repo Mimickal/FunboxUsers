@@ -90,16 +90,15 @@ def utilTests():
 		@beforeEach
 		def createUser():
 			nonlocal test_user
+			testutil.clearDatabase()
 			test_user = User.create(
 				name='test', pass_hash='hash', pass_salt='salt'
 			)
 
 		@afterEach
 		def cleanupCodes():
-			nonlocal test_user
 			nonlocal added_codes
 			testutil.clearDatabase()
-			test_user = None
 
 		@it('Ensures unique codes')
 		def codesUnique():
