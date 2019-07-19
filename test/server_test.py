@@ -10,6 +10,7 @@ from peewee import fn
 from server import app as server_app, limiter
 import util
 from db import User, Code
+import testutil
 
 
 def authHeader(username, password):
@@ -67,19 +68,9 @@ def serverTests():
 		)
 		return test_user
 
-	def cleanupUsers():
-		nonlocal test_user
-		if test_user is not None:
-			test_user.delete_instance()
-
-	def cleanupCodes(code):
-		assert_that(code, not_none())
-		Code.delete().where(Code.code == code).execute()
-
 	@before
 	def _beforeAll():
-		cleanupUsers()
-		cleanupCodes(test_code)
+		testutil.clearDatabase()
 		enableRateLimiter(False)
 
 	@describe('Login form')
@@ -92,7 +83,7 @@ def serverTests():
 
 		@afterEach
 		def _afterEach():
-			cleanupUsers()
+			testutil.clearDatabase()
 			removeLoginToken()
 
 		@it('User does not exist')
@@ -187,7 +178,7 @@ def serverTests():
 
 		@afterEach
 		def _afterEach():
-			cleanupUsers()
+			testutil.clearDatabase()
 
 		@it('Successful login')
 		def goodLogin():
@@ -236,7 +227,7 @@ def serverTests():
 
 		@afterEach
 		def _afterEach():
-			cleanupUsers()
+			testutil.clearDatabase()
 			removeLoginToken()
 
 		@it('Successful login')
@@ -340,7 +331,7 @@ def serverTests():
 
 		@afterEach
 		def _afterEach():
-			cleanupUsers()
+			testutil.clearDatabase()
 
 		@it('User does not exist')
 		def userDoesNotExist():
@@ -386,8 +377,6 @@ def serverTests():
 			code = match.groups()[0]
 			assert_that(Code.get_by_code(code), not_none())
 
-			cleanupCodes(code)
-
 	@describe('Confirm Code')
 	def confirmCode():
 
@@ -399,8 +388,7 @@ def serverTests():
 
 		@afterEach
 		def _afterEach():
-			cleanupCodes(test_code)
-			cleanupUsers()
+			testutil.clearDatabase()
 
 		@it('Attempting to confirm bad code')
 		def confirmBadCode():
