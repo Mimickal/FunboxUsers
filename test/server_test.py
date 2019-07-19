@@ -10,6 +10,7 @@ from peewee import fn
 from server import app as server_app, limiter
 import util
 from db import User, Code
+import testutil
 
 
 def authHeader(username, password):
@@ -67,19 +68,9 @@ def serverTests():
 		)
 		return test_user
 
-	def cleanupUsers():
-		nonlocal test_user
-		if test_user is not None:
-			test_user.delete_instance()
-
-	def cleanupCodes(code):
-		assert_that(code, not_none())
-		Code.delete().where(Code.code == code).execute()
-
 	@before
 	def _beforeAll():
-		cleanupUsers()
-		cleanupCodes(test_code)
+		testutil.clearDatabase()
 		enableRateLimiter(False)
 
 	@describe('Login form')
@@ -87,12 +78,12 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
+			testutil.clearDatabase()
 			createTestUser()
 			enableRateLimiter(False)
 
 		@afterEach
 		def _afterEach():
-			cleanupUsers()
 			removeLoginToken()
 
 		@it('User does not exist')
@@ -182,12 +173,9 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
+			testutil.clearDatabase()
 			createTestUser()
 			enableRateLimiter(False)
-
-		@afterEach
-		def _afterEach():
-			cleanupUsers()
 
 		@it('Successful login')
 		def goodLogin():
@@ -231,12 +219,12 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
+			testutil.clearDatabase()
 			createTestUser()
 			enableRateLimiter(False)
 
 		@afterEach
 		def _afterEach():
-			cleanupUsers()
 			removeLoginToken()
 
 		@it('Successful login')
@@ -336,11 +324,8 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
+			testutil.clearDatabase()
 			createTestUser()
-
-		@afterEach
-		def _afterEach():
-			cleanupUsers()
 
 		@it('User does not exist')
 		def userDoesNotExist():
@@ -386,21 +371,15 @@ def serverTests():
 			code = match.groups()[0]
 			assert_that(Code.get_by_code(code), not_none())
 
-			cleanupCodes(code)
-
 	@describe('Confirm Code')
 	def confirmCode():
 
 		@beforeEach
 		def _beforeEach():
 			nonlocal test_user
+			testutil.clearDatabase()
 			createTestUser()
 			Code.create_email(code=test_code, user=test_user, email=test_email)
-
-		@afterEach
-		def _afterEach():
-			cleanupCodes(test_code)
-			cleanupUsers()
 
 		@it('Attempting to confirm bad code')
 		def confirmBadCode():

@@ -6,6 +6,7 @@ from peewee import fn
 
 import util
 from db import User, Code
+import testutil
 
 @describe('Util Tests')
 def utilTests():
@@ -89,17 +90,15 @@ def utilTests():
 		@beforeEach
 		def createUser():
 			nonlocal test_user
+			testutil.clearDatabase()
 			test_user = User.create(
 				name='test', pass_hash='hash', pass_salt='salt'
 			)
 
 		@afterEach
 		def cleanupCodes():
-			nonlocal test_user
 			nonlocal added_codes
-			Code.delete().where(Code.code.in_(added_codes)).execute()
-			test_user.delete_instance()
-			test_user = None
+			testutil.clearDatabase()
 
 		@it('Ensures unique codes')
 		def codesUnique():

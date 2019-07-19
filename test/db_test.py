@@ -1,10 +1,11 @@
-from pocha import describe, it, before, beforeEach, after
+from pocha import describe, it, before, beforeEach
 from hamcrest import *
 import scrypt
 from time import sleep
 from datetime import datetime, timedelta
 from peewee import IntegrityError
 
+import testutil
 from db import User, Code
 
 
@@ -21,13 +22,6 @@ def databaseTests():
 
 	test_user = None
 	test_id = None
-
-	def cleanup():
-		'''Removes the test data from the database'''
-		Code.delete().where(Code.code.in_(
-			[test_code1, test_code2, test_code3]
-		)).execute()
-		User.delete().where(User.name == test_name).execute()
 
 	def addTestUser():
 		nonlocal test_user
@@ -53,18 +47,14 @@ def databaseTests():
 
 	@before
 	def beforeAll():
-		cleanup()
-
-	@after
-	def afterAll():
-		cleanup()
+		testutil.clearDatabase()
 
 	@describe('Get User')
 	def getUser():
 
 		@beforeEach
 		def _beforeEach():
-			cleanup()
+			testutil.clearDatabase()
 			addTestUser()
 
 		@it('User fields persisted')
@@ -85,7 +75,7 @@ def databaseTests():
 
 		@beforeEach
 		def _beforeEach():
-			cleanup()
+			testutil.clearDatabase()
 
 		@it('Fields preserved')
 		def fieldsPreserved():
@@ -135,7 +125,7 @@ def databaseTests():
 		@beforeEach
 		def _beforeEach():
 			nonlocal test_user
-			cleanup()
+			testutil.clearDatabase()
 			test_user = addTestUser()
 
 		@it('Update user email preserves other fields')
@@ -186,7 +176,7 @@ def databaseTests():
 
 		@beforeEach
 		def _beforeEach():
-			cleanup()
+			testutil.clearDatabase()
 			addTestUser()
 
 		@it('None not allowed for code')
@@ -269,7 +259,7 @@ def databaseTests():
 
 		@beforeEach
 		def _beforeEach():
-			cleanup()
+			testutil.clearDatabase()
 			addTestUser()
 			addTestCode()
 
@@ -298,7 +288,7 @@ def databaseTests():
 
 		@beforeEach
 		def _beforeEach():
-			cleanup()
+			testutil.clearDatabase()
 			addTestUser()
 			addTestCode()
 
@@ -323,7 +313,7 @@ def databaseTests():
 
 		@beforeEach
 		def _beforeEach():
-			cleanup()
+			testutil.clearDatabase()
 			addTestUser()
 
 		@it('Old codes culled')
