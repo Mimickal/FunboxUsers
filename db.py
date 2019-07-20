@@ -35,7 +35,7 @@ class User(BaseModel):
 class Code(BaseModel):
 	code       = TextField(null=False, unique=True, constraints=[Check("code != ''")])
 	user       = ForeignKeyField(User, null=False)
-	type       = TextField(null=False)
+	type       = TextField(null=True)
 	email      = TextField(null=True)
 	created_at = DateTimeField(default=datetime.now())
 	used_at    = DateTimeField(null=True)
@@ -79,9 +79,12 @@ class Code(BaseModel):
 			.get().count
 
 class PendingEmail(BaseModel):
-	code  = ForeignKeyField(Code, null=False, unique=True)
-	user  = ForeignKeyField(User, null=False)
+	code  = ForeignKeyField(Code, null=False, unique=True, field=Code.code)
+	user  = ForeignKeyField(User, null=False, unique=True)
 	email = TextField(null=False)
+
+	def get_by_code(code):
+		return PendingEmail.select().where(PendingEmail.code == code).get()
 
 db.connect()
 db.create_tables([User, Code, PendingEmail])

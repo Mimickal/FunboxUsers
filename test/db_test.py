@@ -360,6 +360,11 @@ def databaseTests():
 
 		@it('Code ref must be unique')
 		def codeRefUnique():
+			other_test_user = User.create(
+				name = 'newuser2',
+				pass_hash = test_hash,
+				pass_salt = test_salt,
+			)
 			PendingEmail.create(
 				code = added_code,
 				user = test_user,
@@ -368,7 +373,7 @@ def databaseTests():
 			assert_that(
 				calling(PendingEmail.create).with_args(
 					code = added_code,
-					user = test_user,
+					user = other_test_user,
 					email = 'a@email.com'
 				),
 				raises(IntegrityError, 'UNIQUE constraint failed: pendingemail.code')
@@ -385,6 +390,23 @@ def databaseTests():
 				raises(IntegrityError, 'NOT NULL constraint failed: pendingemail.code')
 			)
 
+		@it('User ref must be unique')
+		def codeRefUnique():
+			other_added_code = Code.create(code=test_code2, user=test_user)
+			PendingEmail.create(
+				code = added_code,
+				user = test_user,
+				email = 'a@email.com'
+			)
+			assert_that(
+				calling(PendingEmail.create).with_args(
+					code = other_added_code,
+					user = test_user,
+					email = 'a@email.com'
+				),
+				raises(IntegrityError, 'UNIQUE constraint failed: pendingemail.user')
+			)
+
 		@it('User ref must exist')
 		def userRefExists():
 			assert_that(
@@ -395,4 +417,11 @@ def databaseTests():
 				),
 				raises(IntegrityError, 'NOT NULL constraint failed: pendingemail.user')
 			)
+
+		@it('Get by code')
+		def getByCode():
+			PendingEmail.create(code=added_code, user=test_user, email='aaa')
+			pending = PendingEmail.get_by_code(added_code.code)
+			assert_that(pending, not_none())
+			assert_that(pending.code.code, equal_to(added_code.code))
 
