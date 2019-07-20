@@ -34,21 +34,11 @@ class User(BaseModel):
 
 class Code(BaseModel):
 	code       = TextField(null=False, unique=True, constraints=[Check("code != ''")])
-	user       = ForeignKeyField(User, null=False)
+	user       = ForeignKeyField(User, null=True)
 	type       = TextField(null=True)
 	email      = TextField(null=True)
 	created_at = DateTimeField(default=datetime.now())
 	used_at    = DateTimeField(null=True)
-
-	def create_email(*args, **kwargs):
-		if kwargs.get('email', None) is None:
-			raise IntegrityError('Email codes must define an email')
-		kwargs['type'] = 'email'
-		return Code.create(*args, **kwargs)
-
-	def create_password(*args, **kwargs):
-		kwargs['type'] = 'pass'
-		return Code.create(*args, **kwargs)
 
 	def get_by_code(code, include_used=False):
 		query = Code.select().where(Code.code == code)

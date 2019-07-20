@@ -385,7 +385,7 @@ def serverTests():
 			nonlocal test_user
 			testutil.clearDatabase()
 			createTestUser()
-			Code.create_email(code=test_code, user=test_user, email=test_email)
+			Code.create(code=test_code, user=test_user, email=test_email)
 
 		@it('Attempting to confirm bad code')
 		def confirmBadCode():

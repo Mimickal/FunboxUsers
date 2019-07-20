@@ -33,15 +33,6 @@ def databaseTests():
 		)
 		return test_user
 
-	def addTestCode():
-		nonlocal test_user
-		Code.create(
-			type  = 'email',
-			code  = test_code1,
-			user  = test_user,
-			email = test_email
-		)
-
 	def assertDateNearNow(date):
 		assert_that(date.timestamp(), close_to(datetime.now().timestamp(), 5))
 
@@ -183,7 +174,7 @@ def databaseTests():
 		def codeNone():
 			nonlocal test_user
 			assert_that(
-				calling(Code.create_email).with_args(
+				calling(Code.create).with_args(
 					user    = test_user,
 					email   = test_email,
 					code    = None
@@ -195,7 +186,7 @@ def databaseTests():
 		def codeEmpty():
 			nonlocal test_user
 			assert_that(
-				calling(Code.create_email).with_args(
+				calling(Code.create).with_args(
 					user    = test_user,
 					email   = test_email,
 					code    = ''
@@ -206,13 +197,13 @@ def databaseTests():
 		@it('Duplicate codes not allowed')
 		def duplicate():
 			nonlocal test_user
-			Code.create_password(
+			Code.create(
 				user    = test_user,
 				email   = test_email,
 				code    = test_code1
 			)
 			assert_that(
-				calling(Code.create_password).with_args(
+				calling(Code.create).with_args(
 					user    = test_user,
 					email   = test_email,
 					code    = test_code1
@@ -220,27 +211,15 @@ def databaseTests():
 				raises(IntegrityError, 'UNIQUE constraint failed: code.code')
 			)
 
-		@it('Email codes require email')
-		def emailNone():
-			nonlocal test_user
-			assert_that(
-				calling(Code.create_email).with_args(
-					user    = test_user,
-					email   = None,
-					code    = test_code1
-				),
-				raises(IntegrityError, 'Email codes must define an email')
-			)
-
 		@it('Successfully added codes')
 		def codeAdded():
 			nonlocal test_user
-			Code.create_email(
+			Code.create(
 				user    = test_user,
 				email   = test_email,
 				code    = test_code1
 			)
-			Code.create_password(
+			Code.create(
 				user    = test_user,
 				email   = None,
 				code    = test_code2
@@ -261,7 +240,7 @@ def databaseTests():
 		def _beforeEach():
 			testutil.clearDatabase()
 			addTestUser()
-			addTestCode()
+			Code.create(code=test_code1)
 
 		@it('None returned for non-existing code')
 		def nonExisting():
@@ -274,8 +253,6 @@ def databaseTests():
 			code = Code.get_by_code(test_code1)
 			assert_that(code,       is_(not_none()))
 			assert_that(code.code,  equal_to(test_code1))
-			assert_that(code.user,  equal_to(test_user))
-			assert_that(code.email, equal_to(test_email))
 
 		@it('Getting used code')
 		def gettingUsedCode():
@@ -290,7 +267,7 @@ def databaseTests():
 		def _beforeEach():
 			testutil.clearDatabase()
 			addTestUser()
-			addTestCode()
+			Code.create(code=test_code1)
 
 		@it('None returned for using non-existing code')
 		def nonExisting():
@@ -314,22 +291,18 @@ def databaseTests():
 		@beforeEach
 		def _beforeEach():
 			testutil.clearDatabase()
-			addTestUser()
 
 		@it('Old codes culled')
 		def oldCulled():
-			nonlocal test_user
 			now = datetime.now()
 			three_days = timedelta(days=3)
 			Code.insert_many(
 				[
-					('pass', test_code1, test_user, None, now),
-					('pass', test_code2, test_user, now,  now - three_days),
-					('pass', test_code3, test_user, None, now - three_days),
+					(test_code1, None, now),
+					(test_code2, now,  now - three_days),
+					(test_code3, None, now - three_days),
 				],
-				fields=[
-					Code.type, Code.code, Code.user, Code.used_at, Code.created_at
-				]
+				fields=[Code.code, Code.used_at, Code.created_at]
 			).execute()
 
 			# Verify codes all exist
@@ -345,6 +318,11 @@ def databaseTests():
 			assert_that(Code.get_by_code(test_code2, include_used=True), not_none())
 			assert_that(Code.get_by_code(test_code3, include_used=True), none())
 
+		#@it('Unused PendingEmail rows also removed')
+		#def pendingCulled():
+		#	nonlocal test_user
+		#	Code.create(code=test_code1
+
 	@describe('Pending email codes')
 	def pendingEmail():
 
@@ -355,7 +333,7 @@ def databaseTests():
 			nonlocal added_code
 			testutil.clearDatabase()
 			addTestUser()
-			addTestCode()
+			Code.create(code=test_code1)
 			added_code = Code.get_by_code(test_code1)
 
 		@it('Code ref must be unique')
@@ -392,7 +370,7 @@ def databaseTests():
 
 		@it('User ref must be unique')
 		def codeRefUnique():
-			other_added_code = Code.create(code=test_code2, user=test_user)
+			other_added_code = Code.create(code=test_code2)
 			PendingEmail.create(
 				code = added_code,
 				user = test_user,

@@ -84,16 +84,11 @@ def utilTests():
 	@describe('makeUniqueCode')
 	def test_makeUniqueCode():
 
-		test_user = None
 		added_codes = []
 
 		@beforeEach
 		def createUser():
-			nonlocal test_user
 			testutil.clearDatabase()
-			test_user = User.create(
-				name='test', pass_hash='hash', pass_salt='salt'
-			)
 
 		@afterEach
 		def cleanupCodes():
@@ -103,14 +98,13 @@ def utilTests():
 		@it('Ensures unique codes')
 		def codesUnique():
 			nonlocal added_codes
-			nonlocal test_user
 
 			# Add a bunch of codes
 			num_codes = 10
 			added_codes = []
 			for _ in range(num_codes):
 				code = util.makeUniqueCode(8)
-				Code.create_email(code=code, user=test_user, email='a@email')
+				Code.create(code=code)
 				added_codes.append(code)
 
 			# Verify that all codes were added and unique
@@ -125,13 +119,12 @@ def utilTests():
 		@it('Detect when there are no more unique combinations')
 		def notEnoughUniqueCodes():
 			nonlocal added_codes
-			nonlocal test_user
 
 			num_codes = len(util.CODE_CHARS)
 			for _ in range(num_codes):
 				code = util.makeUniqueCode(1)
 				# TODO remove this and make makeUniqueCode add the code
-				Code.create_email(code=code, user=test_user, email='a@email')
+				Code.create(code=code)
 				added_codes.append(code)
 
 			assert_that(
