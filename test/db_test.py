@@ -174,11 +174,7 @@ def databaseTests():
 		def codeNone():
 			nonlocal test_user
 			assert_that(
-				calling(Code.create).with_args(
-					user    = test_user,
-					email   = test_email,
-					code    = None
-				),
+				calling(Code.create).with_args(code=None),
 				raises(IntegrityError, 'NOT NULL constraint failed: code.code')
 			)
 
@@ -186,52 +182,29 @@ def databaseTests():
 		def codeEmpty():
 			nonlocal test_user
 			assert_that(
-				calling(Code.create).with_args(
-					user    = test_user,
-					email   = test_email,
-					code    = ''
-				),
+				calling(Code.create).with_args(code=''),
 				raises(IntegrityError, 'CHECK constraint failed: code')
 			)
 
 		@it('Duplicate codes not allowed')
 		def duplicate():
 			nonlocal test_user
-			Code.create(
-				user    = test_user,
-				email   = test_email,
-				code    = test_code1
-			)
+			Code.create(code=test_code1)
 			assert_that(
-				calling(Code.create).with_args(
-					user    = test_user,
-					email   = test_email,
-					code    = test_code1
-				),
+				calling(Code.create).with_args(code=test_code1),
 				raises(IntegrityError, 'UNIQUE constraint failed: code.code')
 			)
 
 		@it('Successfully added codes')
 		def codeAdded():
 			nonlocal test_user
-			Code.create(
-				user    = test_user,
-				email   = test_email,
-				code    = test_code1
-			)
-			Code.create(
-				user    = test_user,
-				email   = None,
-				code    = test_code2
-			)
+			Code.create(code=test_code1)
+			Code.create(code=test_code2)
 
 			code = Code.get_by_code(test_code1)
-			assert_that(code.code,    equal_to(test_code1))
-			assert_that(code.email,   equal_to(test_email))
-			assert_that(code.used_at, is_(none()))
+			assert_that(code.code, equal_to(test_code1))
+			assert_that(code.used_at, none())
 			assertDateNearNow(code.created_at)
-			# Peewee gets the entire related model for foreign keys
-			assert_that(code.user, equal_to(test_user))
 
 	@describe('Get Code')
 	def getCode():
@@ -239,7 +212,6 @@ def databaseTests():
 		@beforeEach
 		def _beforeEach():
 			testutil.clearDatabase()
-			addTestUser()
 			Code.create(code=test_code1)
 
 		@it('None returned for non-existing code')
@@ -249,16 +221,15 @@ def databaseTests():
 
 		@it('Code successfully retrieved')
 		def codeRetrieved():
-			nonlocal test_user
 			code = Code.get_by_code(test_code1)
-			assert_that(code,       is_(not_none()))
-			assert_that(code.code,  equal_to(test_code1))
+			assert_that(code, not_none())
+			assert_that(code.code, equal_to(test_code1))
 
 		@it('Getting used code')
 		def gettingUsedCode():
 			Code.use_code(test_code1)
-			assert_that(Code.get_by_code(test_code1), is_(none()))
-			assert_that(Code.get_by_code(test_code1, include_used=True), is_(not_none()))
+			assert_that(Code.get_by_code(test_code1), none())
+			assert_that(Code.get_by_code(test_code1, include_used=True), not_none())
 
 	@describe('Use Code')
 	def useCode():
@@ -266,19 +237,18 @@ def databaseTests():
 		@beforeEach
 		def _beforeEach():
 			testutil.clearDatabase()
-			addTestUser()
 			Code.create(code=test_code1)
 
 		@it('None returned for using non-existing code')
 		def nonExisting():
 			Code.use_code('badcode')
 			code = Code.get_by_code('badcode')
-			assert_that(code, is_(none()))
+			assert_that(code, none())
 
 		@it('Code successfully used')
 		def usedCode():
 			code = Code.get_by_code(test_code1)
-			assert_that(code.used_at, is_(none()))
+			assert_that(code.used_at, none())
 
 			Code.use_code(test_code1)
 

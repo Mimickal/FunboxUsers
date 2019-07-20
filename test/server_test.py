@@ -107,7 +107,7 @@ def serverTests():
 		@it('Successful login')
 		def goodLogin():
 			with app.session_transaction() as session:
-				assert_that(session.get('login', None), is_(none()))
+				assert_that(session.get('login', None), none())
 			response = app.post('/login/form', data={
 				'csrf_token': getLoginCSRFToken(),
 				'username': test_name,
@@ -115,7 +115,7 @@ def serverTests():
 			})
 			assertResponse(response, 200, 'Ok')
 			with app.session_transaction() as session:
-				assert_that(session.get('login', None), is_not(none()))
+				assert_that(session.get('login', None), not_none())
 
 		@it('Missing CSRF token')
 		def missingCSRFToken():
@@ -230,7 +230,7 @@ def serverTests():
 		@it('Successful login')
 		def goodLogin():
 			with app.session_transaction() as session:
-				assert_that(session.get('login', None), is_(none()))
+				assert_that(session.get('login', None), none())
 			response = app.post('/login/json',
 				headers={ 'X-CSRFToken': getLoginCSRFToken() },
 				json={
@@ -240,7 +240,7 @@ def serverTests():
 			)
 			assertResponse(response, 200, 'Ok')
 			with app.session_transaction() as session:
-				assert_that(session.get('login', None), is_not(none()))
+				assert_that(session.get('login', None), not_none())
 
 		@it('User does not exist')
 		def userDoesNotExist():
@@ -412,18 +412,7 @@ def serverTests():
 			assertResponse(response, 403, 'Forbidden')
 
 			user = User.get_by_id(test_user.id)
-			assert_that(user.email, is_(none()))
-
-		# Can't actually delete a user with codes without getting a
-		# ForeignKey constraint exception from SQLite.
-		# TODO maybe we don't need this test (or make some other test)?
-		#@it('Attempting to confirm code for a deleted user')
-		#def confirmCodeDeletedUser():
-		#	nonlocal test_user
-		#	cleanupUsers()
-		#	response = app.get('/update/email/confirm/' + test_code)
-		#	assertResponse(response, 403, 'Forbidden')
-		#	assert_that(User.get_by_name(test_name), is_(none()))
+			assert_that(user.email, none())
 
 		@it('Successfully confirm email via code')
 		def emailAdded():
@@ -433,7 +422,7 @@ def serverTests():
 
 			user = User.get_by_id(test_user.id)
 			assert_that(user.email, equal_to(test_email))
-			assert_that(Code.get_by_code(test_code), is_(none()))
+			assert_that(Code.get_by_code(test_code), none())
 
 	@describe('Generic Error')
 	def genericError():

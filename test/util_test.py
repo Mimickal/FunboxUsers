@@ -28,7 +28,7 @@ def utilTests():
 		@it('New key created on first request')
 		def newKey():
 			assert_that(os.path.isfile(test_key_file), equal_to(False))
-			assert_that(util.getSecretKey(test_key_file), is_(not_none()))
+			assert_that(util.getSecretKey(test_key_file), not_none())
 			assert_that(os.path.isfile(test_key_file), equal_to(True))
 
 		@it('Existing key loaded')
@@ -50,7 +50,7 @@ def utilTests():
 
 		@it('Directories recursively created')
 		def recursivePathCreation():
-			assert_that(util.getSecretKey(test_nested_path), is_(not_none()))
+			assert_that(util.getSecretKey(test_nested_path), not_none())
 
 	@describe('makeCode')
 	def test_makeCode():
@@ -92,7 +92,6 @@ def utilTests():
 
 		@afterEach
 		def cleanupCodes():
-			nonlocal added_codes
 			testutil.clearDatabase()
 
 		@it('Ensures unique codes')
