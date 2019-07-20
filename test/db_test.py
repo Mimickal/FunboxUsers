@@ -373,3 +373,7 @@ def databaseTests():
 			assert_that(pending, not_none())
 			assert_that(pending.code.code, equal_to(added_code.code))
 
+		@it('None returned for non-existing code')
+		def noneCode():
+			assert_that(PendingEmail.get_by_code('bad'), none())
+

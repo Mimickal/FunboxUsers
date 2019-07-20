@@ -74,7 +74,10 @@ class PendingEmail(BaseModel):
 	email = TextField(null=False)
 
 	def get_by_code(code):
-		return PendingEmail.select().where(PendingEmail.code == code).get()
+		try:
+			return PendingEmail.select().where(PendingEmail.code == code).get()
+		except DoesNotExist:
+			return None
 
 db.connect()
 db.create_tables([User, Code, PendingEmail])
