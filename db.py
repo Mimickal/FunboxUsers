@@ -78,6 +78,11 @@ class Code(BaseModel):
 			.where(fn.LENGTH(Code.code) == length) \
 			.get().count
 
+class PendingEmail(BaseModel):
+	code  = ForeignKeyField(Code, null=False, unique=True)
+	user  = ForeignKeyField(User, null=False)
+	email = TextField(null=False)
+
 db.connect()
-db.create_tables([User, Code])
+db.create_tables([User, Code, PendingEmail])
 

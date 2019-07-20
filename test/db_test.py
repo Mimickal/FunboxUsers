@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from peewee import IntegrityError
 
 import testutil
-from db import User, Code
+from db import User, Code, PendingEmail
 
 
 @describe('Database Tests')
@@ -344,4 +344,55 @@ def databaseTests():
 			assert_that(Code.get_by_code(test_code1, include_used=True), not_none())
 			assert_that(Code.get_by_code(test_code2, include_used=True), not_none())
 			assert_that(Code.get_by_code(test_code3, include_used=True), none())
+
+	@describe('Pending email codes')
+	def pendingEmail():
+
+		added_code = None
+
+		@beforeEach
+		def _beforeEach():
+			nonlocal added_code
+			testutil.clearDatabase()
+			addTestUser()
+			addTestCode()
+			added_code = Code.get_by_code(test_code1)
+
+		@it('Code ref must be unique')
+		def codeRefUnique():
+			PendingEmail.create(
+				code = added_code,
+				user = test_user,
+				email = 'a@email.com'
+			)
+			assert_that(
+				calling(PendingEmail.create).with_args(
+					code = added_code,
+					user = test_user,
+					email = 'a@email.com'
+				),
+				raises(IntegrityError, 'UNIQUE constraint failed: pendingemail.code')
+			)
+
+		@it('Code ref must exist')
+		def codeRefExists():
+			assert_that(
+				calling(PendingEmail.create).with_args(
+					code = None,
+					user = test_user,
+					email = 'a@email.com'
+				),
+				raises(IntegrityError, 'NOT NULL constraint failed: pendingemail.code')
+			)
+
+		@it('User ref must exist')
+		def userRefExists():
+			assert_that(
+				calling(PendingEmail.create).with_args(
+					code = added_code,
+					user = None,
+					email = 'a@email.com'
+				),
+				raises(IntegrityError, 'NOT NULL constraint failed: pendingemail.user')
+			)
 
