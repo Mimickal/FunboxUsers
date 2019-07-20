@@ -385,7 +385,7 @@ def serverTests():
 			nonlocal test_user
 			testutil.clearDatabase()
 			createTestUser()
-			Code.create(code=test_code, user=test_user, email=test_email)
+			Code.create(code=test_code)
 
 		@it('Attempting to confirm bad code')
 		def confirmBadCode():
@@ -417,6 +417,7 @@ def serverTests():
 		@it('Successfully confirm email via code')
 		def emailAdded():
 			nonlocal test_user
+			PendingEmail.create(code=test_code, user=test_user, email=test_email)
 			response = app.get('/update/email/confirm/' + test_code)
 			assertResponse(response, 200, 'Ok')
 

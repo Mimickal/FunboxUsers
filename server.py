@@ -153,24 +153,25 @@ def addEmail():
 		return forbidden()
 
 
-@app.route('/update/email/confirm/<code>', methods=['GET'])
-def confirmEmail(code):
+@app.route('/update/email/confirm/<code_str>', methods=['GET'])
+def confirmEmail(code_str):
 	global CODE_VALIDATOR
-	if CODE_VALIDATOR.match(code) is None:
+	if CODE_VALIDATOR.match(code_str) is None:
 		return forbidden()
 
-	code_info = Code.get_by_code(code)
-	if code_info is None:
+	pending = PendingEmail.get_by_code(code_str)
+	if pending is None:
 		return forbidden()
 
-	user = code_info.user
+	user = pending.user
 	# With peewee this shouldn't ever happen
 	if user is None:
 		return forbidden()
 
-	user.email = code_info.email
+	user.email = pending.email
 	user.save()
-	Code.use_code(code)
+	Code.use_code(code_str)
+	pending.delete()
 
 	return ok()
 

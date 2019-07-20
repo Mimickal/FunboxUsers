@@ -168,11 +168,9 @@ def databaseTests():
 		@beforeEach
 		def _beforeEach():
 			testutil.clearDatabase()
-			addTestUser()
 
 		@it('None not allowed for code')
 		def codeNone():
-			nonlocal test_user
 			assert_that(
 				calling(Code.create).with_args(code=None),
 				raises(IntegrityError, 'NOT NULL constraint failed: code.code')
@@ -180,7 +178,6 @@ def databaseTests():
 
 		@it('Empty string not allowed for code')
 		def codeEmpty():
-			nonlocal test_user
 			assert_that(
 				calling(Code.create).with_args(code=''),
 				raises(IntegrityError, 'CHECK constraint failed: code')
@@ -188,7 +185,6 @@ def databaseTests():
 
 		@it('Duplicate codes not allowed')
 		def duplicate():
-			nonlocal test_user
 			Code.create(code=test_code1)
 			assert_that(
 				calling(Code.create).with_args(code=test_code1),
@@ -197,7 +193,6 @@ def databaseTests():
 
 		@it('Successfully added codes')
 		def codeAdded():
-			nonlocal test_user
 			Code.create(code=test_code1)
 			Code.create(code=test_code2)
 
