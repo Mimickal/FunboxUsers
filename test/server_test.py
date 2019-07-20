@@ -9,7 +9,7 @@ from peewee import fn
 
 from server import app as server_app, limiter
 import util
-from db import User, Code
+from db import User, Code, PendingEmail
 import testutil
 
 
@@ -370,6 +370,12 @@ def serverTests():
 			assert_that(match, not_none())
 			code = match.groups()[0]
 			assert_that(Code.get_by_code(code), not_none())
+
+			# Check that pivot associating code and user is created too
+			pending = PendingEmail.get_by_code(code)
+			assert_that(pending, not_none())
+			assert_that(pending.email, equal_to(email))
+
 
 	@describe('Confirm Code')
 	def confirmCode():

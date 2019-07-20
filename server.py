@@ -9,7 +9,7 @@ import yaml
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-from db import User, Code
+from db import User, Code, PendingEmail
 import util
 
 EMAIL_VALIDATOR = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
@@ -138,11 +138,13 @@ def addEmail():
 
 	if pw_hash == user.pass_hash:
 		# Create an email verify code
-		code = util.makeUniqueCode(CODE_SIZE)
-		Code.create_email(code=code, user=user, email=email)
+		# TODO makeUniqueCode should store the code and return the object
+		code_str = util.makeUniqueCode(CODE_SIZE)
+		code_model = Code.create(code=code_str, user=user)
+		PendingEmail.create(code=code_model, user=user, email=email)
 
 		# TODO we're hard coding this link for now
-		link = 'https://funbox.com.ru:20100/update/email/confirm/' + code
+		link = 'https://funbox.com.ru:20100/update/email/confirm/' + code_str
 		sendmail(email, 'Funbox Email Verification',
 			'Hello from funbox! Use this link to verify your email: ' + link)
 
