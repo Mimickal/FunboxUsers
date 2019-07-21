@@ -9,7 +9,7 @@ import yaml
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-from db import User, Code, PendingEmail
+from db import User, Code, PendingEmail, LoginCode
 import util
 
 EMAIL_VALIDATOR = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
@@ -113,7 +113,10 @@ def verifyLogin(username, password, cookie=False):
 
 	if pw_hash == user.pass_hash:
 		if cookie:
-			session['login'] = util.makeUniqueCode(LOGIN_COOKIE_SIZE)
+			code_str = util.makeUniqueCode(LOGIN_COOKIE_SIZE)
+			code = Code.get_by_code(code_str)
+			LoginCode.create(user=user, code=code)
+			session['login'] = code_str
 		return ok()
 	else:
 		return forbidden()

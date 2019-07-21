@@ -9,7 +9,7 @@ from peewee import fn
 
 from server import app as server_app, limiter
 import util
-from db import User, Code, PendingEmail
+from db import User, Code, PendingEmail, LoginCode
 import testutil
 
 
@@ -115,7 +115,12 @@ def serverTests():
 			})
 			assertResponse(response, 200, 'Ok')
 			with app.session_transaction() as session:
-				assert_that(session.get('login', None), not_none())
+				code = session.get('login', None)
+				assert_that(code, not_none())
+			assert_that(Code.get_by_code(code), not_none())
+			login_code = LoginCode.get_by_code(code)
+			assert_that(login_code, not_none())
+			assert_that(login_code.code.code, equal_to(code))
 
 		@it('Missing CSRF token')
 		def missingCSRFToken():
@@ -240,7 +245,12 @@ def serverTests():
 			)
 			assertResponse(response, 200, 'Ok')
 			with app.session_transaction() as session:
-				assert_that(session.get('login', None), not_none())
+				code = session.get('login', None)
+				assert_that(code, not_none())
+			assert_that(Code.get_by_code(code), not_none())
+			login_code = LoginCode.get_by_code(code)
+			assert_that(login_code, not_none())
+			assert_that(login_code.code.code, equal_to(code))
 
 		@it('User does not exist')
 		def userDoesNotExist():
