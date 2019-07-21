@@ -84,47 +84,29 @@ def utilTests():
 	@describe('makeUniqueCode')
 	def test_makeUniqueCode():
 
-		added_codes = []
-
 		@beforeEach
-		def createUser():
-			testutil.clearDatabase()
-
 		@afterEach
-		def cleanupCodes():
+		def createUser():
 			testutil.clearDatabase()
 
 		@it('Ensures unique codes')
 		def codesUnique():
-			nonlocal added_codes
-
 			# Add a bunch of codes
 			num_codes = 10
-			added_codes = []
 			for _ in range(num_codes):
-				code = util.makeUniqueCode(8)
-				Code.create(code=code)
-				added_codes.append(code)
+				util.makeUniqueCode(8)
 
 			# Verify that all codes were added and unique
 			codes_added = Code                      \
 				.select(fn.COUNT(1).alias('count')) \
-				.distinct()                         \
-				.where(Code.code.in_(added_codes))  \
-				.get()                              \
-				.count
+				.distinct().get().count
 			assert_that(codes_added, equal_to(num_codes))
 
 		@it('Detect when there are no more unique combinations')
 		def notEnoughUniqueCodes():
-			nonlocal added_codes
-
 			num_codes = len(util.CODE_CHARS)
 			for _ in range(num_codes):
-				code = util.makeUniqueCode(1)
-				# TODO remove this and make makeUniqueCode add the code
-				Code.create(code=code)
-				added_codes.append(code)
+				util.makeUniqueCode(1)
 
 			assert_that(
 				calling(util.makeUniqueCode).with_args(1),

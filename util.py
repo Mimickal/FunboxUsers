@@ -1,6 +1,7 @@
 import os
 import string
 from random import choice
+from peewee import IntegrityError
 
 from db import User, Code
 
@@ -47,8 +48,12 @@ def makeUniqueCode(length):
 		raise Exception('No remaining unique codes available of length %d' % length)
 
 	# Bootleg do-while. Thanks Python.
+	# Create the code in a try-except to prevent creation race condition
 	while True:
 		code = makeCode(length)
-		if Code.get_by_code(code) is None:
+		try:
+			Code.create(code=code)
 			return code
+		except IntegrityError:
+			continue
 

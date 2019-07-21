@@ -138,13 +138,12 @@ def addEmail():
 
 	if pw_hash == user.pass_hash:
 		# Create an email verify code
-		# TODO makeUniqueCode should store the code and return the object
 		code_str = util.makeUniqueCode(CODE_SIZE)
-		code_model = Code.create(code=code_str, user=user)
-		PendingEmail.create(code=code_model, user=user, email=email)
+		code = Code.get_by_code(code_str)
+		PendingEmail.create(code=code, user=user, email=email)
 
 		# TODO we're hard coding this link for now
-		link = 'https://funbox.com.ru:20100/update/email/confirm/' + code_str
+		link = 'https://funbox.com.ru:20100/update/email/confirm/' + code.code
 		sendmail(email, 'Funbox Email Verification',
 			'Hello from funbox! Use this link to verify your email: ' + link)
 
