@@ -80,6 +80,9 @@ class CodePivot(BaseModel):
 class PendingEmail(CodePivot):
 	email = TextField(null=False)
 
+class LoginCode(CodePivot):
+	pass
+
 db.connect()
-db.create_tables([User, Code, PendingEmail])
+db.create_tables([User, Code, PendingEmail, LoginCode])
 

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from peewee import IntegrityError
 
 import testutil
-from db import User, Code, PendingEmail
+from db import User, Code, PendingEmail, LoginCode
 
 
 @describe('Database Tests')
@@ -288,8 +288,8 @@ def databaseTests():
 		#	nonlocal test_user
 		#	Code.create(code=test_code1
 
-	@describe('Pending email codes')
-	def pendingEmail():
+	@describe('Code association', only=True)
+	def codeAssociation():
 
 		added_code = None
 
@@ -361,12 +361,19 @@ def databaseTests():
 				raises(IntegrityError, 'NOT NULL constraint failed: pendingemail.user')
 			)
 
-		@it('Get by code')
-		def getByCode():
+		@it('Get by code PendingEmail')
+		def getByCodePendingEmail():
 			PendingEmail.create(code=added_code, user=test_user, email='aaa')
 			pending = PendingEmail.get_by_code(added_code.code)
 			assert_that(pending, not_none())
 			assert_that(pending.code.code, equal_to(added_code.code))
+
+		@it('Get by code LoginCode')
+		def getByCode():
+			LoginCode.create(code=added_code, user=test_user)
+			login = LoginCode.get_by_code(added_code.code)
+			assert_that(login, not_none())
+			assert_that(login.code.code, equal_to(added_code.code))
 
 		@it('None returned for non-existing code')
 		def noneCode():
