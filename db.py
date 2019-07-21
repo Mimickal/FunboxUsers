@@ -65,16 +65,20 @@ class Code(BaseModel):
 			.where(fn.LENGTH(Code.code) == length) \
 			.get().count
 
-class PendingEmail(BaseModel):
-	code  = ForeignKeyField(Code, null=False, unique=True, field=Code.code)
-	user  = ForeignKeyField(User, null=False, unique=True)
-	email = TextField(null=False)
+class CodePivot(BaseModel):
+	'''Base class for tables that associate codes with other things'''
+	code = ForeignKeyField(Code, null=False, unique=True, field=Code.code)
+	user = ForeignKeyField(User, null=False, unique=True)
 
-	def get_by_code(code):
+	@classmethod
+	def get_by_code(subclass, code):
 		try:
-			return PendingEmail.select().where(PendingEmail.code == code).get()
+			return subclass.select().where(subclass.code == code).get()
 		except DoesNotExist:
 			return None
+
+class PendingEmail(CodePivot):
+	email = TextField(null=False)
 
 db.connect()
 db.create_tables([User, Code, PendingEmail])
