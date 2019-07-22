@@ -127,6 +127,8 @@ def addEmail():
 	global EMAIL_VALIDATOR
 	global CODE_SIZE
 
+	csrf.protect()
+
 	login_code = session.get('login', None)
 	if login_code is None:
 		return forbidden()
