@@ -343,41 +343,36 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
+			with app.session_transaction() as session:
+				session.clear()
 			testutil.clearDatabase()
 			createTestUser()
 
-		@it('User does not exist')
-		def userDoesNotExist():
-			response = app.put('/update/email',
-				headers=authHeader('baduser', 'pass'),
-				data='example@email.com'
-			)
+		@it('Invalid session')
+		def invalidSession():
+			response = app.delete('/update/email')
 			assertResponse(response, 403, 'Forbidden')
 
-		@it('Password does not match')
-		def passDoesNotMatch():
-			response = app.put('/update/email',
-				headers=authHeader(test_name, 'badpass'),
-				data='example@email.com'
-			)
+		@it('Invalid login code')
+		def invalidLoginCode():
+			getLoginSession()
+			with app.session_transaction() as session:
+				session['login'] = 'badtoken'
+			response = app.delete('/update/email')
 			assertResponse(response, 403, 'Forbidden')
 
 		@it('Invalid email')
 		def emailInvalid():
-			response = app.put('/update/email',
-				headers=authHeader(test_name, test_pass),
-				data='bademail'
-			)
+			getLoginSession()
+			response = app.put('/update/email', data='bademail')
 			assertResponse(response, 400, 'Invalid email')
 
 		@it('Code added')
 		@patch('server.sendmail')
 		def codeAdded(mock_emailer):
+			getLoginSession()
 			email = 'new@email.com'
-			response = app.put('/update/email',
-				headers=authHeader(test_name, test_pass),
-				data=email
-			)
+			response = app.put('/update/email', data=email)
 			assertResponse(response, 200, 'Ok')
 
 			args = mock_emailer.call_args[0]
@@ -401,7 +396,6 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
-			nonlocal test_user
 			testutil.clearDatabase()
 			createTestUser()
 			Code.create(code=test_code)
