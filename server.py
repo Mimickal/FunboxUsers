@@ -178,6 +178,23 @@ def confirmEmail(code_str):
 	return ok()
 
 
+@app.route('/update/email', methods=['DELETE'])
+def removeEmail():
+	csrf.protect()
+	code = session.get('login', None)
+	if code is None:
+		return forbidden()
+
+	login = LoginCode.get_by_code(code)
+	if login is None:
+		return forbidden()
+
+	login.user.email = None
+	login.user.save()
+
+	return ok()
+
+
 def ok():
 	return 'Ok', 200
 
