@@ -444,20 +444,24 @@ def serverTests():
 			assert_that(user.email, equal_to(test_email))
 			assert_that(Code.get_by_code(test_code), none())
 
-	@describe('Remove email from user')
+	@describe('Remove email from user', only=True)
 	def removeEmailFromUser():
+
+		csrf_header = None
 
 		@beforeEach
 		def _beforeEach():
 			nonlocal test_user
+			nonlocal csrf_header
 			with app.session_transaction() as session:
 				session.clear()
 			testutil.clearDatabase()
 			createTestUser()
+			csrf_header = { 'X-CSRFToken': getLoginCSRFToken() }
 
 		@it('Invalid session')
 		def invalidSession():
-			response = app.delete('/update/email')
+			response = app.delete('/update/email', headers=csrf_header)
 			assertResponse(response, 403, 'Forbidden')
 
 		@it('Invalid login code')
@@ -465,8 +469,14 @@ def serverTests():
 			getLoginSession()
 			with app.session_transaction() as session:
 				session['login'] = 'badtoken'
-			response = app.delete('/update/email')
+			response = app.delete('/update/email', headers=csrf_header)
 			assertResponse(response, 403, 'Forbidden')
+
+		@it('Missing CSRF token')
+		def missingCSRF():
+			getLoginSession()
+			response = app.delete('/update/email')
+			assertResponse(response, 400, 'Session expired. Reload and try again')
 
 		@it('Successfully removed email')
 		def successfulRemoval():
@@ -475,7 +485,7 @@ def serverTests():
 			user = User.get_by_name(test_user.name)
 			assert_that(user.email, equal_to(test_email))
 
-			response = app.delete('/update/email')
+			response = app.delete('/update/email', headers=csrf_header)
 			assertResponse(response, 200, 'Ok')
 
 			user = User.get_by_name(test_user.name)
@@ -487,7 +497,7 @@ def serverTests():
 			test_user.email = None
 			test_user.save()
 
-			response = app.delete('/update/email')
+			response = app.delete('/update/email', headers=csrf_header)
 			assertResponse(response, 200, 'Ok')
 
 			user = User.get_by_name(test_user.name)

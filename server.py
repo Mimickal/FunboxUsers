@@ -180,6 +180,7 @@ def confirmEmail(code_str):
 
 @app.route('/update/email', methods=['DELETE'])
 def removeEmail():
+	csrf.protect()
 	code = session.get('login', None)
 	if code is None:
 		return forbidden()
