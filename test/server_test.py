@@ -438,14 +438,13 @@ def serverTests():
 			assert_that(user.email, equal_to(test_email))
 			assert_that(Code.get_by_code(test_code), none())
 
-	@describe('Remove email from user', only=True)
+	@describe('Remove email from user')
 	def removeEmailFromUser():
 
 		csrf_header = None
 
 		@beforeEach
 		def _beforeEach():
-			nonlocal test_user
 			nonlocal csrf_header
 			with app.session_transaction() as session:
 				session.clear()
