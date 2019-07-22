@@ -47,6 +47,15 @@ def serverTests():
 		token = re.search(b'name="csrf_token" value="(.*)"', login.data)
 		return token.group(1).decode('utf-8')
 
+	def getLoginSession():
+		# Sets the session for the test app
+		response = app.post('/login/form', data={
+			'csrf_token': getLoginCSRFToken(),
+			'username': test_name,
+			'password': test_pass
+		})
+		assertResponse(response, 200, 'Ok')
+
 	# TODO can we move this?
 	def enableRateLimiter(is_enabled):
 		limiter.reset()
@@ -434,6 +443,55 @@ def serverTests():
 			user = User.get_by_id(test_user.id)
 			assert_that(user.email, equal_to(test_email))
 			assert_that(Code.get_by_code(test_code), none())
+
+	@describe('Remove email from user')
+	def removeEmailFromUser():
+
+		@beforeEach
+		def _beforeEach():
+			nonlocal test_user
+			with app.session_transaction() as session:
+				session.clear()
+			testutil.clearDatabase()
+			createTestUser()
+
+		@it('Invalid session')
+		def invalidSession():
+			response = app.delete('/update/email')
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Invalid login code')
+		def invalidLoginCode():
+			getLoginSession()
+			with app.session_transaction() as session:
+				session['login'] = 'badtoken'
+			response = app.delete('/update/email')
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Successfully removed email')
+		def successfulRemoval():
+			getLoginSession()
+
+			user = User.get_by_name(test_user.name)
+			assert_that(user.email, equal_to(test_email))
+
+			response = app.delete('/update/email')
+			assertResponse(response, 200, 'Ok')
+
+			user = User.get_by_name(test_user.name)
+			assert_that(user.email, none())
+
+		@it('Succeeds even when there was not an email')
+		def successfulNoEmail():
+			getLoginSession()
+			test_user.email = None
+			test_user.save()
+
+			response = app.delete('/update/email')
+			assertResponse(response, 200, 'Ok')
+
+			user = User.get_by_name(test_user.name)
+			assert_that(user.email, none())
 
 	@describe('Generic Error')
 	def genericError():
