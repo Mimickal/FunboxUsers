@@ -127,32 +127,33 @@ def addEmail():
 	global EMAIL_VALIDATOR
 	global CODE_SIZE
 
-	auth = request.authorization
-	user = User.get_by_name(auth.username)
-	email = request.get_data(as_text=True)
+	csrf.protect()
 
-	if user is None:
+	login_code = session.get('login', None)
+	if login_code is None:
 		return forbidden()
+
+	login = LoginCode.get_by_code(login_code)
+	if login is None:
+		return forbidden()
+
+	user = login.user
+	email = request.get_data(as_text=True)
 
 	if EMAIL_VALIDATOR.match(email) is None:
 		return 'Invalid email', 400
 
-	pw_hash = scrypt.hash(auth.password, user.pass_salt)
+	# Create an email verify code
+	code_str = util.makeUniqueCode(CODE_SIZE)
+	code = Code.get_by_code(code_str)
+	PendingEmail.create(code=code, user=user, email=email)
 
-	if pw_hash == user.pass_hash:
-		# Create an email verify code
-		code_str = util.makeUniqueCode(CODE_SIZE)
-		code = Code.get_by_code(code_str)
-		PendingEmail.create(code=code, user=user, email=email)
+	# TODO we're hard coding this link for now
+	link = 'https://funbox.com.ru:20100/update/email/confirm/' + code.code
+	sendmail(email, 'Funbox Email Verification',
+		'Hello from funbox! Use this link to verify your email: ' + link)
 
-		# TODO we're hard coding this link for now
-		link = 'https://funbox.com.ru:20100/update/email/confirm/' + code.code
-		sendmail(email, 'Funbox Email Verification',
-			'Hello from funbox! Use this link to verify your email: ' + link)
-
-		return ok()
-	else:
-		return forbidden()
+	return ok()
 
 
 @app.route('/update/email/confirm/<code_str>', methods=['GET'])

@@ -341,43 +341,48 @@ def serverTests():
 	@describe('Add Email')
 	def addEmail():
 
+		csrf_header = None
+
 		@beforeEach
 		def _beforeEach():
+			nonlocal csrf_header
+			with app.session_transaction() as session:
+				session.clear()
 			testutil.clearDatabase()
 			createTestUser()
+			csrf_header = { 'X-CSRFToken': getLoginCSRFToken() }
 
-		@it('User does not exist')
-		def userDoesNotExist():
-			response = app.put('/update/email',
-				headers=authHeader('baduser', 'pass'),
-				data='example@email.com'
-			)
+		@it('Invalid session')
+		def invalidSession():
+			response = app.delete('/update/email', headers=csrf_header)
 			assertResponse(response, 403, 'Forbidden')
 
-		@it('Password does not match')
-		def passDoesNotMatch():
-			response = app.put('/update/email',
-				headers=authHeader(test_name, 'badpass'),
-				data='example@email.com'
-			)
+		@it('Invalid login code')
+		def invalidLoginCode():
+			getLoginSession()
+			with app.session_transaction() as session:
+				session['login'] = 'badtoken'
+			response = app.delete('/update/email', headers=csrf_header)
 			assertResponse(response, 403, 'Forbidden')
 
 		@it('Invalid email')
 		def emailInvalid():
-			response = app.put('/update/email',
-				headers=authHeader(test_name, test_pass),
-				data='bademail'
-			)
+			getLoginSession()
+			response = app.put('/update/email', headers=csrf_header, data='bademail')
 			assertResponse(response, 400, 'Invalid email')
+
+		@it('Missing CSRF token')
+		def missingCSRF():
+			getLoginSession()
+			response = app.put('/update/email', data='a@a.a')
+			assertResponse(response, 400, 'Session expired. Reload and try again')
 
 		@it('Code added')
 		@patch('server.sendmail')
 		def codeAdded(mock_emailer):
+			getLoginSession()
 			email = 'new@email.com'
-			response = app.put('/update/email',
-				headers=authHeader(test_name, test_pass),
-				data=email
-			)
+			response = app.put('/update/email', headers=csrf_header, data=email)
 			assertResponse(response, 200, 'Ok')
 
 			args = mock_emailer.call_args[0]
@@ -401,7 +406,6 @@ def serverTests():
 
 		@beforeEach
 		def _beforeEach():
-			nonlocal test_user
 			testutil.clearDatabase()
 			createTestUser()
 			Code.create(code=test_code)
@@ -444,14 +448,13 @@ def serverTests():
 			assert_that(user.email, equal_to(test_email))
 			assert_that(Code.get_by_code(test_code), none())
 
-	@describe('Remove email from user', only=True)
+	@describe('Remove email from user')
 	def removeEmailFromUser():
 
 		csrf_header = None
 
 		@beforeEach
 		def _beforeEach():
-			nonlocal test_user
 			nonlocal csrf_header
 			with app.session_transaction() as session:
 				session.clear()
