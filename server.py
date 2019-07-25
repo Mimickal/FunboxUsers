@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, session
+from flask import Flask, request, render_template, session, jsonify
 from flask_wtf.csrf import CSRFProtect, CSRFError
 import scrypt
 import re
@@ -8,6 +8,7 @@ from string import ascii_letters, digits
 import yaml
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from playhouse.shortcuts import model_to_dict
 
 from db import User, Code, PendingEmail, LoginCode
 import util
@@ -120,6 +121,31 @@ def verifyLogin(username, password, cookie=False):
 		return ok()
 	else:
 		return forbidden()
+
+
+@app.route('/user', methods=['GET'])
+def getUser():
+	login_code = session.get('login', None)
+	if login_code is None:
+		return forbidden()
+
+	login = LoginCode.get_by_code(login_code)
+	if login is None:
+		return forbidden()
+
+	user = login.user
+
+	info = model_to_dict(user)
+	info.pop('pass_hash', None)
+	info.pop('pass_salt', None)
+
+	if info.get('email', None) is None:
+		pending = PendingEmail.get_by_user(user)
+		if pending is not None:
+			info['email'] = pending.email
+			info['email_pending'] = True
+
+	return jsonify(info), 200
 
 
 @app.route('/update/email', methods=['PUT'])

@@ -6,6 +6,7 @@ from base64 import b64encode
 import re
 import yaml
 from peewee import fn
+import json
 
 from server import app as server_app, limiter
 import util
@@ -23,6 +24,9 @@ def authHeader(username, password):
 def assertResponse(response, code, text, desc=None):
 	assert_that(response.status_code, equal_to(code), desc)
 	assert_that(response.get_data(as_text=True), equal_to(text), desc)
+
+def getJsonFrom(response):
+	return json.loads(response.get_data(as_text=True))
 
 @describe('Server Tests')
 def serverTests():
@@ -337,6 +341,83 @@ def serverTests():
 			}
 			res = app.post('/login/json', headers=headers, json=json)
 			assertResponse(res, 400, 'Already logged in')
+
+	@describe('Fetch logged in user')
+	def getAccountInfo():
+
+		@beforeEach
+		def _beforeEach():
+			with app.session_transaction() as session:
+				session.clear()
+			testutil.clearDatabase()
+			createTestUser()
+
+		@it('Invalid session')
+		def invalidSession():
+			response = app.get('/user')
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Invalid login code')
+		def invalidLoginCode():
+			getLoginSession()
+			with app.session_transaction() as session:
+				session['login'] = 'badtoken'
+			response = app.get('/user')
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Gets the logged in user')
+		def getLoggedInUser():
+			getLoginSession()
+			response = app.get('/user')
+
+			assert_that(response.status_code, equal_to(200))
+			data = getJsonFrom(response)
+			assert_that(data, has_entries({
+				'name': test_user.name,
+				'email': test_user.email
+			}))
+			assert_that(data, has_key('created_at'))
+			assert_that(data, has_key('updated_at'))
+			assert_that(data, has_key('accessed_at'))
+
+		@it('Password is redacted')
+		def getUserNoPassword():
+			getLoginSession()
+			response = app.get('/user')
+
+			assert_that(response.status_code, equal_to(200))
+			data = getJsonFrom(response)
+			assert_that(data, not_(has_key('pass_hash')))
+			assert_that(data, not_(has_key('pass_salt')))
+
+		@it('Fetches pending email')
+		def getUserPendingEmail():
+			nonlocal test_user
+			test_user.email = None
+			test_user.save()
+
+			new_email = 'myfancy@new.email'
+			new_code = Code.create(code=test_code)
+			PendingEmail.create(
+				user  = test_user,
+				code  = new_code,
+				email = new_email
+			)
+
+			getLoginSession()
+			response = app.get('/user')
+
+			assert_that(response.status_code, equal_to(200))
+			data = getJsonFrom(response)
+			assert_that(data, has_entries({
+				'name': test_user.name,
+				'email': new_email,
+				'email_pending': True
+			}))
+
+		#@it('accessed_at is near now')
+		# TODO this^ when accessed_at is implemented.
+		# Probably check that accessed_at != created and updated
 
 	@describe('Add Email')
 	def addEmail():
