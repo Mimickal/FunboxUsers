@@ -171,13 +171,13 @@ def changePassword():
 	if old is None or new1 is None or new2 is None:
 		return 'Missing fields', 400
 
-	if new1 != new2:
-		return 'Passwords do not match', 400
-
 	user = login.user
 	old_hash = scrypt.hash(old, user.pass_salt)
 	if old_hash != user.pass_hash:
 		return 'Old password incorrect', 400
+
+	if new1 != new2:
+		return 'Passwords do not match', 400
 
 	new_hash = scrypt.hash(new1, user.pass_salt)
 	user.pass_hash = new_hash
