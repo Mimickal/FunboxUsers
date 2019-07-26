@@ -288,7 +288,7 @@ def databaseTests():
 		#	nonlocal test_user
 		#	Code.create(code=test_code1
 
-	@describe('Code association', only=True)
+	@describe('Code association')
 	def codeAssociation():
 
 		added_code = None
@@ -361,6 +361,20 @@ def databaseTests():
 				raises(IntegrityError, 'NOT NULL constraint failed: pendingemail.user')
 			)
 
+		@it('Get by user PendingEmail')
+		def getByUserPendingEmail():
+			PendingEmail.create(code=added_code, user=test_user, email='aaa')
+			pending = PendingEmail.get_by_user(test_user)
+			assert_that(pending, not_none())
+			assert_that(pending.user, equal_to(test_user))
+
+		@it('Get by user LoginCode')
+		def getByUserLogin():
+			LoginCode.create(code=added_code, user=test_user)
+			login = LoginCode.get_by_user(test_user)
+			assert_that(login, not_none())
+			assert_that(login.user, equal_to(test_user))
+
 		@it('Get by code PendingEmail')
 		def getByCodePendingEmail():
 			PendingEmail.create(code=added_code, user=test_user, email='aaa')
@@ -369,7 +383,7 @@ def databaseTests():
 			assert_that(pending.code.code, equal_to(added_code.code))
 
 		@it('Get by code LoginCode')
-		def getByCode():
+		def getByCodeLogin():
 			LoginCode.create(code=added_code, user=test_user)
 			login = LoginCode.get_by_code(added_code.code)
 			assert_that(login, not_none())

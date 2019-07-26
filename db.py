@@ -71,6 +71,13 @@ class CodePivot(BaseModel):
 	user = ForeignKeyField(User, null=False, unique=True)
 
 	@classmethod
+	def get_by_user(subclass, user):
+		try:
+			return subclass.select().where(subclass.user == user).get()
+		except DoesNotExist:
+			return None
+
+	@classmethod
 	def get_by_code(subclass, code):
 		try:
 			return subclass.select().where(subclass.code == code).get()
