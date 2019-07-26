@@ -419,6 +419,101 @@ def serverTests():
 		# TODO this^ when accessed_at is implemented.
 		# Probably check that accessed_at != created and updated
 
+	@describe('Change password')
+	def changePassword():
+
+		csrf_header = None
+		new_pass = 'mynewpassword'
+
+		@beforeEach
+		def _beforeEach():
+			nonlocal csrf_header
+			with app.session_transaction() as session:
+				session.clear()
+			testutil.clearDatabase()
+			createTestUser()
+			csrf_header = { 'X-CSRFToken': getLoginCSRFToken() }
+
+		@it('Invalid session')
+		def invalidSession():
+			response = app.put('/update/password', headers=csrf_header)
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Invalid login code')
+		def invalidLoginCode():
+			getLoginSession()
+			with app.session_transaction() as session:
+				session['login'] = 'badtoken'
+			response = app.put('/update/password', headers=csrf_header)
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Missing CSRF token')
+		def missingCSRF():
+			getLoginSession()
+			response = app.put('/update/password')
+			assertResponse(response, 400, 'Session expired. Reload and try again')
+
+		@it('Missing required fields')
+		def missingRequiredFields():
+			getLoginSession()
+			res = app.put('/update/password', headers=csrf_header, json={
+				'pass_new': new_pass,
+				'pass_new_conf': new_pass
+			})
+			assertResponse(res, 400, 'Missing fields')
+
+			res = app.put('/update/password', headers=csrf_header, json={
+				'pass_old': test_pass,
+				'pass_new_conf': new_pass
+			})
+			assertResponse(res, 400, 'Missing fields')
+
+			res = app.put('/update/password', headers=csrf_header, json={
+				'pass_old': test_pass,
+				'pass_new': new_pass
+			})
+			assertResponse(res, 400, 'Missing fields')
+
+		@it('Missing data entirely')
+		def missingDataEntirely():
+			getLoginSession()
+			response = app.put('/update/password', headers=csrf_header, data={})
+			assertResponse(response, 400, 'Missing json data')
+
+		@it('Old password incorrect')
+		def oldPasswordIncorrect():
+			getLoginSession()
+			response = app.put('/update/password', headers=csrf_header, json={
+				'pass_old': 'definitely wrong',
+				'pass_new': new_pass,
+				'pass_new_conf': new_pass
+			})
+			assertResponse(response, 400, 'Old password incorrect')
+
+		@it('New password and confirmation do not match')
+		def newPassConfDoesntMatch():
+			getLoginSession()
+			response = app.put('/update/password', headers=csrf_header, json={
+				'pass_old': test_pass,
+				'pass_new': new_pass,
+				'pass_new_conf': 'definitely does not match'
+			})
+			assertResponse(response, 400, 'Passwords do not match')
+
+		@it('Successful password change')
+		def passwordChangeSuccess():
+			getLoginSession()
+			response = app.put('/update/password', headers=csrf_header, json={
+				'pass_old': test_pass,
+				'pass_new': new_pass,
+				'pass_new_conf': new_pass
+			})
+			assertResponse(response, 200, 'Ok')
+
+			new_hash = scrypt.hash(new_pass, test_salt)
+			user = User.get_by_name(test_name)
+			assert_that(user.pass_hash, equal_to(new_hash))
+
 	@describe('Add Email')
 	def addEmail():
 
