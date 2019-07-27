@@ -57,3 +57,9 @@ def makeUniqueCode(length):
 		except IntegrityError:
 			continue
 
+def isValidPassword(password):
+	'''Validates that a password is a defined, non-empty string'''
+	return password is not None \
+		and len(password) > 0  \
+		and isinstance(password, str)
+

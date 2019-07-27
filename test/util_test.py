@@ -113,3 +113,22 @@ def utilTests():
 				raises(Exception, 'No remaining unique codes available of length 1')
 			)
 
+	@describe('isValidPassword')
+	def test_isValidPassword():
+
+		@it('None not allowed')
+		def noneNotAllowed():
+			assert_that(util.isValidPassword(None), equal_to(False))
+
+		@it('Empty string not allowed')
+		def emptyNotAllowed():
+			assert_that(util.isValidPassword(''), equal_to(False))
+
+		@it('Non-string not allowed')
+		def nonStringNotAllowed():
+			assert_that(util.isValidPassword(['mypasshere']), equal_to(False))
+
+		@it('Valid password accepted')
+		def validPassAccepted():
+			assert_that(util.isValidPassword('mypasshere'), equal_to(True))
+

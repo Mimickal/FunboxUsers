@@ -148,6 +148,46 @@ def getUser():
 	return jsonify(info), 200
 
 
+@app.route('/update/password', methods=['PUT'])
+def changePassword():
+	csrf.protect()
+
+	login_code = session.get('login', None)
+	if login_code is None:
+		return forbidden()
+
+	login = LoginCode.get_by_code(login_code)
+	if login is None:
+		return forbidden()
+
+	json = request.json
+	if json is None:
+		return 'Missing json data', 400
+
+	old = json.get('pass_old', None)
+	new1 = json.get('pass_new', None)
+	new2 = json.get('pass_new_conf', None)
+
+	if old is None or new1 is None or new2 is None:
+		return 'Missing fields', 400
+
+	if not util.isValidPassword(old) or not util.isValidPassword(new1):
+		return 'Invalid password', 400
+
+	user = login.user
+	old_hash = scrypt.hash(old, user.pass_salt)
+	if old_hash != user.pass_hash:
+		return 'Old password incorrect', 400
+
+	if new1 != new2:
+		return 'Passwords do not match', 400
+
+	new_hash = scrypt.hash(new1, user.pass_salt)
+	user.pass_hash = new_hash
+	user.save()
+	return ok()
+
+
 @app.route('/update/email', methods=['PUT'])
 def addEmail():
 	global EMAIL_VALIDATOR
