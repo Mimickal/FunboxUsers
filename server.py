@@ -171,6 +171,9 @@ def changePassword():
 	if old is None or new1 is None or new2 is None:
 		return 'Missing fields', 400
 
+	if not util.isValidPassword(old) or not util.isValidPassword(new1):
+		return 'Invalid password', 400
+
 	user = login.user
 	old_hash = scrypt.hash(old, user.pass_salt)
 	if old_hash != user.pass_hash:

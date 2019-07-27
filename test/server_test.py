@@ -500,6 +500,33 @@ def serverTests():
 			})
 			assertResponse(response, 400, 'Passwords do not match')
 
+		@it('New password must not be empty')
+		def newPassConfDoesntMatch():
+			getLoginSession()
+			response = app.put('/update/password', headers=csrf_header, json={
+				'pass_old': test_pass,
+				'pass_new': '',
+				'pass_new_conf': ''
+			})
+			assertResponse(response, 400, 'Invalid password')
+
+		@it('Fields must all be strings')
+		def allFieldsAreStrings():
+			getLoginSession()
+			response = app.put('/update/password', headers=csrf_header, json={
+				'pass_old': [test_pass],
+				'pass_new': new_pass,
+				'pass_new_conf': new_pass
+			})
+			assertResponse(response, 400, 'Invalid password')
+
+			response = app.put('/update/password', headers=csrf_header, json={
+				'pass_old': test_pass,
+				'pass_new': { 'pass': new_pass },
+				'pass_new_conf': { 'pass': new_pass }
+			})
+			assertResponse(response, 400, 'Invalid password')
+
 		@it('Successful password change')
 		def passwordChangeSuccess():
 			getLoginSession()
