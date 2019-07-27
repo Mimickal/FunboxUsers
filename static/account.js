@@ -40,6 +40,25 @@ window.onload = function() {
 	emailCancelBtn.onclick = hideEmailForm;
 	emailSubmitBtn.onclick = submitEmail;
 
+	// Load the logged in user's data
+	window.fetch('./user').then(async function(res) {
+		let data = await res.json();
+		username.textContent = data.name;
+		if (data.email) {
+			hideEmailForm();
+			emailCurrent.textContent = data.email;
+			if (data.email_pending) {
+				hide(emailConfSymbol);
+				show(emailUnconfSymbol);
+			} else {
+				show(emailConfSymbol);
+				hide(emailUnconfSymbol);
+			}
+		} else {
+			showEmailForm();
+		}
+	}).catch(console.err);
+
 	function hidePasswordForm() {
 		show(passRedacted);
 		show(passChangeBtn);
