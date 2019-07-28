@@ -1,6 +1,8 @@
 window.onload = function() {
 	var username = byId("username");
 
+	var csrfInput = byId('csrf');
+
 	var passRedacted = byId("pass-redacted");
 	var passChangeBtn = byId("pass-change-btn");
 	var passChangeForm = byId("pass-change-form");
@@ -112,14 +114,28 @@ window.onload = function() {
 		}
 		else {
 			disablePasswordForm();
-			post('./', {
-				password_new: passNew.value
+			window.fetch('./update/password', {
+				method: 'put',
+				headers: {
+					'Content-type': 'application/json; charset=UTF-8',
+					'X-CSRFToken': csrfInput.value
+				},
+				body: JSON.stringify({
+					pass_old: passOld.value,
+					pass_new: passNew.value,
+					pass_new_conf: passNewConf.value
+				})
 			})
-			.then(function(res) {
-				hidePasswordForm();
-				enablePasswordForm();
-				passRedacted.textContent = "Password updated";
-				passRedacted.setAttribute("class", "green");
+			.then(async function(res) {
+				if (res.ok) {
+					hidePasswordForm();
+					enablePasswordForm();
+					passRedacted.textContent = "Password updated";
+					passRedacted.setAttribute("class", "green");
+				} else {
+					issue = await res.text();
+					passIssue.textContent = issue;
+				}
 			})
 			.catch(function(err) {
 				enablePasswordForm();

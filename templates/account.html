@@ -19,6 +19,7 @@
 		<div>
 			<div id="pass-redacted">Redacted, obviously</div>
 			<form id="pass-change-form">
+				<input id="csrf" type=hidden name="csrf_token" value="{{ csrf_token() }}"/>
 				<input type=password name="pass_old" placeholder="Old password"/>
 				<input type=password name="pass_new" placeholder="New password"/>
 				<input type=password name="pass_new_conf" placeholder="Confirm new password"/>
@@ -35,6 +36,9 @@
 		<div class="grid-label">EMAIL</div>
 		<div>
 			<form id="email-form">
+				<!--This CSRF field is identical to the one in the password form.
+				Allows email form to also use CSRF protection-->
+				<input id="csrf" type=hidden name="csrf_token" value="{{ csrf_token() }}"/>
 				<input type=text name="email_new" placeholder="Add an email"/>
 				<button id="email-submit-btn" type=button class="green">Submit</button>
 				<button id="email-cancel-btn" type=button class="yellow">Cancel</button>
