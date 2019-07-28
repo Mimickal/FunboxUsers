@@ -102,6 +102,11 @@ window.onload = function() {
 	}
 
 	function submitPassword() {
+		passOld.setAttribute('class', null);
+		passNew.setAttribute('class', null);
+		passNewConf.setAttribute('class', null);
+		passIssue.textContent = '';
+
 		if (passNew.value !== passNewConf.value) {
 			passNew.setAttribute("class", "issue");
 			passNewConf.setAttribute("class", "issue");
@@ -134,6 +139,10 @@ window.onload = function() {
 					passRedacted.setAttribute("class", "green");
 				} else {
 					issue = await res.text();
+					if (issue === 'Old password incorrect') {
+						enablePasswordForm();
+						passOld.setAttribute('class', 'issue');
+					}
 					passIssue.textContent = issue;
 				}
 			})
