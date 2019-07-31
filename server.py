@@ -13,6 +13,7 @@ from playhouse.shortcuts import model_to_dict
 from db import User, Code, PendingEmail, LoginCode
 import util
 
+
 EMAIL_VALIDATOR = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
 CODE_VALIDATOR = re.compile(r'^(\w{8})$')
 CODE_SIZE = 8
@@ -139,11 +140,9 @@ def getUser():
 	info.pop('pass_hash', None)
 	info.pop('pass_salt', None)
 
-	if info.get('email', None) is None:
-		pending = PendingEmail.get_by_user(user)
-		if pending is not None:
-			info['email'] = pending.email
-			info['email_pending'] = True
+	pending = PendingEmail.get_by_user(user)
+	if pending is not None:
+		info['email_pending'] = pending.email
 
 	return jsonify(info), 200
 
