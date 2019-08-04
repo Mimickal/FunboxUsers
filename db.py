@@ -84,6 +84,10 @@ class CodePivot(BaseModel):
 		except DoesNotExist:
 			return None
 
+	@classmethod
+	def upsert(subclass, **kwargs):
+		return subclass.insert(kwargs).on_conflict_replace().execute()
+
 class PendingEmail(CodePivot):
 	email = TextField(null=False)
 
