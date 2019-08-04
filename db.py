@@ -86,6 +86,9 @@ class CodePivot(BaseModel):
 
 	@classmethod
 	def upsert(subclass, **kwargs):
+		# FIXME temporary sanity-preserving patch until we get to issue #64.
+		if not isinstance(kwargs.get('code', None), str):
+			raise Exception('Need a code string, not an object')
 		return subclass.insert(kwargs).on_conflict_replace().execute()
 
 class PendingEmail(CodePivot):
