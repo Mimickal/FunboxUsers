@@ -611,6 +611,7 @@ def serverTests():
 		def overwritePendingEmail(mock_emailer):
 			getLoginSession()
 
+			# Add two pending emails
 			email1 = 'new@email.com'
 			response = app.put('/update/email', headers=csrf_header, data=email1)
 			assertResponse(response, 200, 'Ok')
@@ -623,11 +624,15 @@ def serverTests():
 			code2 = extractCodeFromEmail(mock_emailer.call_args[0][2])
 			pending2 = PendingEmail.get_by_code(code2)
 
+			# The second pending email should overwrite the first
 			assert_that(code1, not_(equal_to(code2)))
 			assert_that(pending1.code, not_(equal_to(pending2.code)))
 			assert_that(pending1.user, equal_to(pending2.user))
 			assert_that(pending1.email, equal_to(email1))
 			assert_that(pending2.email, equal_to(email2))
+
+			# The old confirm code should also no longer be valid
+			assert_that(PendingEmail.get_by_code(code1), none())
 
 
 	@describe('Confirm Code')
