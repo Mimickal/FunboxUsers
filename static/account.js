@@ -16,6 +16,7 @@ window.onload = function() {
 	var passNewConf = document.getElementsByName("pass_new_conf")[0];
 
 	var emailCurrent = byId("email-current");
+	var emailNew = byId("email-new");
 	var emailChangeBtn = byId("email-change-btn");
 	var emailCancelBtn = byId("email-cancel-btn");
 	var emailForm = byId("email-form");
@@ -33,6 +34,8 @@ window.onload = function() {
 	// Hide forms and spinners by default
 	hidePasswordForm();
 	hideEmailForm();
+	hide(emailConfSymbol);
+	hide(emailUnconfSymbol);
 
 	passChangeBtn.onclick = showPasswordForm;
 	passChangeCancelBtn.onclick = hidePasswordForm;
@@ -46,15 +49,15 @@ window.onload = function() {
 	window.fetch('./user').then(async function(res) {
 		let data = await res.json();
 		username.textContent = data.name;
-		if (data.email) {
+		if (data.email || data.email_pending) {
 			hideEmailForm();
 			emailCurrent.textContent = data.email;
-			if (data.email_pending) {
-				hide(emailConfSymbol);
-				show(emailUnconfSymbol);
-			} else {
+			emailNew.textContent = data.email_pending;
+			if (data.email) {
 				show(emailConfSymbol);
-				hide(emailUnconfSymbol);
+			}
+			if (data.email_pending) {
+				show(emailUnconfSymbol);
 			}
 		} else {
 			showEmailForm();
@@ -161,6 +164,7 @@ window.onload = function() {
 		enable(emailCancelBtn);
 		show(emailChangeBtn);
 		show(emailCurrent);
+		show(emailNew);
 		clear(emailInput);
 		emailIssue.textContent = "";
 
@@ -170,6 +174,7 @@ window.onload = function() {
 
 	function showEmailForm() {
 		hide(emailCurrent);
+		hide(emailNew);
 		hide(emailChangeBtn);
 		show(emailForm);
 
