@@ -580,28 +580,54 @@ def serverTests():
 			response = app.put('/update/email', data='a@a.a')
 			assertResponse(response, 400, 'Session expired. Reload and try again')
 
-		@it('Code added')
+		def extractCodeFromEmail(body):
+			match = re.search(r'email\/confirm\/(\w{8})', body)
+			assert_that(match, not_none())
+			return match.groups()[0]
+
+		@it('PendingEmail records added')
 		@patch('server.sendmail')
-		def codeAdded(mock_emailer):
+		def pendingEmailRecordsAded(mock_emailer):
 			getLoginSession()
 			email = 'new@email.com'
 			response = app.put('/update/email', headers=csrf_header, data=email)
 			assertResponse(response, 200, 'Ok')
 
+			# Check email was sent with valid code
 			args = mock_emailer.call_args[0]
 			assert_that(args[0], equal_to(email))
 			assert_that(args[1], equal_to('Funbox Email Verification'))
-
-			# Check that our confirm link contains a valid code
-			match = re.search(r'email\/confirm\/(\w{8})', args[2])
-			assert_that(match, not_none())
-			code = match.groups()[0]
-			assert_that(Code.get_by_code(code), not_none())
+			code = extractCodeFromEmail(args[2])
+			assert_that(code, not_none())
 
 			# Check that pivot associating code and user is created too
 			pending = PendingEmail.get_by_code(code)
 			assert_that(pending, not_none())
 			assert_that(pending.email, equal_to(email))
+			assert_that(pending.code.code, equal_to(code))
+
+		@it('Overwriting PendingEmail')
+		@patch('server.sendmail')
+		def overwritePendingEmail(mock_emailer):
+			getLoginSession()
+
+			email1 = 'new@email.com'
+			response = app.put('/update/email', headers=csrf_header, data=email1)
+			assertResponse(response, 200, 'Ok')
+			code1 = extractCodeFromEmail(mock_emailer.call_args[0][2])
+			pending1 = PendingEmail.get_by_code(code1)
+
+			email2 = 'updated@email.com'
+			response = app.put('/update/email', headers=csrf_header, data=email2)
+			assertResponse(response, 200, 'Ok')
+			code2 = extractCodeFromEmail(mock_emailer.call_args[0][2])
+			pending2 = PendingEmail.get_by_code(code2)
+
+			assert_that(code1, not_(equal_to(code2)))
+			assert_that(pending1.code, not_(equal_to(pending2.code)))
+			assert_that(pending1.user, equal_to(pending2.user))
+			assert_that(pending1.email, equal_to(email1))
+			assert_that(pending2.email, equal_to(email2))
 
 
 	@describe('Confirm Code')
