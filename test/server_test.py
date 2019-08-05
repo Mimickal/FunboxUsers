@@ -393,9 +393,6 @@ def serverTests():
 		@it('Fetches pending email')
 		def getUserPendingEmail():
 			nonlocal test_user
-			test_user.email = None
-			test_user.save()
-
 			new_email = 'myfancy@new.email'
 			new_code = Code.create(code=test_code)
 			PendingEmail.create(
@@ -411,8 +408,8 @@ def serverTests():
 			data = getJsonFrom(response)
 			assert_that(data, has_entries({
 				'name': test_user.name,
-				'email': new_email,
-				'email_pending': True
+				'email': test_user.email,
+				'email_pending': new_email
 			}))
 
 		#@it('accessed_at is near now')
