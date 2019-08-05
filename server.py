@@ -2,7 +2,6 @@ from flask import Flask, request, render_template, session, jsonify
 from flask_wtf.csrf import CSRFProtect, CSRFError
 import scrypt
 import re
-from subprocess import Popen, PIPE
 from random import choice
 from string import ascii_letters, digits
 import yaml
@@ -215,7 +214,7 @@ def addEmail():
 
 	# TODO we're hard coding this link for now
 	link = 'https://funbox.com.ru:20100/update/email/confirm/' + code.code
-	sendmail(email, 'Funbox Email Verification',
+	util.sendEmail(email, 'Funbox Email Verification',
 		'Hello from funbox! Use this link to verify your email: ' + link)
 
 	return ok()

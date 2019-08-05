@@ -1,5 +1,6 @@
 import os
 import string
+from subprocess import Popen, PIPE
 from random import choice
 from peewee import IntegrityError
 
@@ -62,4 +63,15 @@ def isValidPassword(password):
 	return password is not None \
 		and len(password) > 0  \
 		and isinstance(password, str)
+
+def sendEmail(email, subject, message):
+	'''Sends an email using the system's email handler'''
+	post = "\n\n\nNote: This is an automated email. " + \
+		'Maybe we read responses, or maybe we pipe them to /dev/null'
+	proc = Popen([
+		'/usr/bin/mail',
+		'-s', subject,
+		email
+	], stdin=PIPE)
+	proc.communicate(input=bytes(message + post, 'UTF-8'))
 
