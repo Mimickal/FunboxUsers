@@ -211,7 +211,7 @@ def addEmail():
 	# Create an email verify code
 	code_str = util.makeUniqueCode(CODE_SIZE)
 	code = Code.get_by_code(code_str)
-	PendingEmail.create(code=code, user=user, email=email)
+	PendingEmail.upsert(code=code_str, user=user, email=email)
 
 	# TODO we're hard coding this link for now
 	link = 'https://funbox.com.ru:20100/update/email/confirm/' + code.code
