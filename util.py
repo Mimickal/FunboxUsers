@@ -68,10 +68,16 @@ def sendEmail(email, subject, message):
 	'''Sends an email using the system's email handler'''
 	post = "\n\n\nNote: This is an automated email. " + \
 		'Maybe we read responses, or maybe we pipe them to /dev/null'
-	proc = Popen([
-		'/usr/bin/mail',
-		'-s', subject,
-		email
-	], stdin=PIPE)
-	proc.communicate(input=bytes(message + post, 'UTF-8'))
+	if os.path.isfile('/usr/bin/mail'):
+		proc = Popen([
+			'/usr/bin/mail',
+			'-s', subject,
+			email
+		], stdin=PIPE)
+		proc.communicate(input=bytes(message + post, 'UTF-8'))
+	else:
+		print(
+			'Mock sending email\nTo:      {:s}\nSubject: {:s}\nBody:\n {:s}' \
+			.format(email, subject, message + post)
+		)
 
