@@ -267,17 +267,6 @@ def forbidden():
 	return 'Forbidden', 403
 
 
-def sendmail(email, subject, message):
-	post = "\n\n\nNote: This is an automated email. " + \
-		'Maybe we read responses, or maybe we pipe them to /dev/null'
-	proc = Popen([
-		'/usr/bin/mail',
-		'-s', subject,
-		email
-	], stdin=PIPE)
-	proc.communicate(input=bytes(message + post, 'UTF-8'))
-
-
 if __name__ == '__main__':
 	app.run(host=config['host'], port=config['port'], debug=config['debug'])
 
