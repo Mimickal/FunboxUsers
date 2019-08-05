@@ -206,8 +206,12 @@ window.onload = function() {
 			disableEmailForm();
 			emailIssue.textContent = "";
 
-			post('./', {
-				email: emailInput.value
+			window.fetch('./update/email', {
+				method: 'put',
+				headers: {
+					'X-CSRFToken': csrfInput.value
+				},
+				body: emailInput.value
 			}).then(function(res) {
 				hideEmailForm();
 				emailCurrent.textContent = res.email_new;
