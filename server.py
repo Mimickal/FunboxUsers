@@ -2,7 +2,6 @@ from flask import Flask, request, render_template, session, jsonify
 from flask_wtf.csrf import CSRFProtect, CSRFError
 import scrypt
 import re
-from subprocess import Popen, PIPE
 from random import choice
 from string import ascii_letters, digits
 import yaml
@@ -215,7 +214,7 @@ def addEmail():
 
 	# TODO we're hard coding this link for now
 	link = 'https://funbox.com.ru:20100/update/email/confirm/' + code.code
-	sendmail(email, 'Funbox Email Verification',
+	util.sendEmail(email, 'Funbox Email Verification',
 		'Hello from funbox! Use this link to verify your email: ' + link)
 
 	return ok()
@@ -266,17 +265,6 @@ def ok():
 
 def forbidden():
 	return 'Forbidden', 403
-
-
-def sendmail(email, subject, message):
-	post = "\n\n\nNote: This is an automated email. " + \
-		'Maybe we read responses, or maybe we pipe them to /dev/null'
-	proc = Popen([
-		'/usr/bin/mail',
-		'-s', subject,
-		email
-	], stdin=PIPE)
-	proc.communicate(input=bytes(message + post, 'UTF-8'))
 
 
 if __name__ == '__main__':

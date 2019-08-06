@@ -583,7 +583,7 @@ def serverTests():
 			return match.groups()[0]
 
 		@it('PendingEmail records added')
-		@patch('server.sendmail')
+		@patch('util.sendEmail')
 		def pendingEmailRecordsAded(mock_emailer):
 			getLoginSession()
 			email = 'new@email.com'
@@ -604,7 +604,7 @@ def serverTests():
 			assert_that(pending.code.code, equal_to(code))
 
 		@it('Overwriting PendingEmail')
-		@patch('server.sendmail')
+		@patch('util.sendEmail')
 		def overwritePendingEmail(mock_emailer):
 			getLoginSession()
 
