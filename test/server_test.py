@@ -342,6 +342,60 @@ def serverTests():
 			res = app.post('/login/json', headers=headers, json=json)
 			assertResponse(res, 400, 'Already logged in')
 
+	@describe('Log out user')
+	def logoutUser():
+
+		csrf_header = None
+
+		@beforeEach
+		def _beforeEach():
+			nonlocal csrf_header
+			with app.session_transaction() as session:
+				session.clear()
+			testutil.clearDatabase()
+			createTestUser()
+			csrf_header = { 'X-CSRFToken': getLoginCSRFToken() }
+
+		@it('Invalid session')
+		def invalidSession():
+			response = app.post('/logout', headers=csrf_header)
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Invalid login code')
+		def invalidLoginCode():
+			getLoginSession()
+			with app.session_transaction() as session:
+				session['login'] = 'badtoken'
+			response = app.post('/logout', headers=csrf_header)
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Missing CSRF token')
+		def missingCSRFToken():
+			getLoginSession()
+			response = app.post('/logout')
+			assertResponse(response, 400, 'Session expired. Reload and try again')
+
+		@it('Successful logout')
+		def successfulLogout():
+			# Create and verify login state
+			getLoginSession()
+			with app.session_transaction() as session:
+				code = session['login']
+			login_code = LoginCode.get_by_user(test_user)
+			assert_that(login_code, not_none())
+			assert_that(login_code.code.code, equal_to(code))
+			assert_that(Code.get_by_code(code).used_at, none())
+
+			# Do logout
+			response = app.post('/logout', headers=csrf_header)
+			assertResponse(response, 200, 'Ok')
+
+			# Verify session information has been destroyed
+			with app.session_transaction() as session:
+				assert_that(session.get('login', None), none())
+			assert_that(LoginCode.get_by_user(test_user), none())
+			assert_that(Code.get_by_code(code, include_used=True).used_at, not_none())
+
 	@describe('Fetch logged in user')
 	def getAccountInfo():
 

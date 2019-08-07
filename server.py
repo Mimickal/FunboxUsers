@@ -123,6 +123,26 @@ def verifyLogin(username, password, cookie=False):
 		return forbidden()
 
 
+# We could reasonably use a DELETE here, but we're using POST to maintain
+# compatibility with older POST-only HTML forms.
+@app.route('/logout', methods=['POST'])
+def logout():
+	csrf.protect()
+
+	login_code = session.get('login', None)
+	if login_code is None:
+		return forbidden()
+
+	login = LoginCode.get_by_code(login_code)
+	if login is None:
+		return forbidden()
+
+	login.delete_instance()
+	Code.use_code(login_code)
+	session.pop('login')
+	return ok()
+
+
 @app.route('/user', methods=['GET'])
 def getUser():
 	login_code = session.get('login', None)
