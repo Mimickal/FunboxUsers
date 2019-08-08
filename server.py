@@ -18,6 +18,9 @@ CODE_VALIDATOR = re.compile(r'^(\w{8})$')
 CODE_SIZE = 8
 LOGIN_COOKIE_SIZE = 16
 
+NAME = "Funbox"
+HOSTNAME = "https://funbox.com.ru:20100"
+
 app = Flask('Funbox Accounts')
 app.secret_key = util.getSecretKey('secret.key')
 
@@ -233,9 +236,9 @@ def addEmail():
 	PendingEmail.upsert(code=code_str, user=user, email=email)
 
 	# TODO we're hard coding this link for now
-	link = 'https://funbox.com.ru:20100/update/email/confirm/' + code.code
-	util.sendEmail(email, 'Funbox Email Verification',
-		'Hello from funbox! Use this link to verify your email: ' + link)
+	link = HOSTNAME + '/update/email/confirm/' + code.code
+	util.sendEmail(email, NAME + ' Email Verification',
+		'Hello from ' + NAME + '! Use this link to verify your email: ' + link)
 
 	return ok()
 
