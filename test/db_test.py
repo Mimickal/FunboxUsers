@@ -429,3 +429,6 @@ def databaseTests():
 			assert_that(prefix + code, equal_to(prefix + test_code1))
 			assert_that(code + prefix, equal_to(test_code1 + prefix))
 			assert_that(code + code, equal_to(test_code1 + test_code1))
+
+	#TODO: In the future when PendingEmail is ready for tests,
+	#copy the Code Class test patterns into PendingEmail tests.
