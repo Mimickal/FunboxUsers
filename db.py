@@ -22,7 +22,9 @@ class User(BaseModel):
 	def get_by_name(name):
 		'''Gets a user by their name.'''
 		try:
-			return User.select().where(User.name == name).get()
+			user = User.select().where(User.name == name).get()
+			user.save()
+			return user
 		except DoesNotExist:
 			return None
 

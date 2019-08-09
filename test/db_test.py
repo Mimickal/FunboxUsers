@@ -61,6 +61,15 @@ def databaseTests():
 			user = User.get_by_name('badname')
 			assert_that(user, is_(none()))
 
+		@it('User accessed_at field updates')
+		def userAccessedAt():
+			'''This works because the date is stored in nanoseconds.'''
+			assert_that(
+				User.get_by_name(test_name).accessed_at,
+				not_(equal_to(User.get_by_name(test_name).accessed_at))
+			)
+
+
 	@describe('Add User')
 	def addUser():
 
