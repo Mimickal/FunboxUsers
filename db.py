@@ -30,7 +30,7 @@ class User(BaseModel):
 
 	def save(self, *args, **kwargs):
 		timestamp = datetime.now()
-		# Popping here to avoid passing on the no_edits var.
+		# Popping here to avoid passing on the update_time var.
 		if kwargs.pop('update_time', True):
 			self.updated_at = timestamp
 		self.accessed_at = timestamp
