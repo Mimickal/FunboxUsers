@@ -406,3 +406,26 @@ def databaseTests():
 		def noneCode():
 			assert_that(PendingEmail.get_by_code('bad'), none())
 
+	@describe('Code class')
+	def classCode():
+
+		@beforeEach
+		def _beforeEach():
+			testutil.clearDatabase()
+			Code.create(code=test_code1)
+
+		@it('Can convert to a string')
+		def strConv():
+			code = Code.get_by_code(test_code1)
+			assert_that(str(code), equal_to(test_code1))
+			assert_that(str(code), equal_to(code.code))
+
+		@it('Handles string concat')
+		def strConv():
+			code = Code.get_by_code(test_code1)
+
+			prefix = "somestuff"
+
+			assert_that(prefix + code, equal_to(prefix + test_code1))
+			assert_that(code + prefix, equal_to(test_code1 + prefix))
+			assert_that(code + code, equal_to(test_code1 + test_code1))
