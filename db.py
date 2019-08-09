@@ -37,8 +37,16 @@ class Code(BaseModel):
 	created_at = DateTimeField(default=datetime.now())
 	used_at    = DateTimeField(null=True)
 
+	# This is all for automatic conversion to strings.
+	def __str__(self):
+		return self.code
+	def __add__(self, other):
+		return self.code + other
+	def __radd__(self, other):
+		return other + self.code
+
 	def get_by_code(code, include_used=False):
-		query = Code.select().where(Code.code == code)
+		query = Code.select().where(Code.code == str(code))
 		if not include_used:
 			query = query.where(Code.used_at.is_null())
 		try:
@@ -48,7 +56,7 @@ class Code(BaseModel):
 
 	def use_code(code):
 		'''Sets a code's used_at field, effectively marking it as used.'''
-		Code.update(used_at=datetime.now()).where(Code.code == code).execute()
+		Code.update(used_at=datetime.now()).where(Code.code == str(code)).execute()
 
 	def cull_old_codes():
 		'''Deletes all old, unused codes.'''
@@ -93,6 +101,14 @@ class CodePivot(BaseModel):
 
 class PendingEmail(CodePivot):
 	email = TextField(null=False)
+
+	# This is all for automatic conversion to strings.
+	def __str__(self):
+		return self.email
+	def __add__(self, other):
+		return self.email + other
+	def __radd__(self, other):
+		return other + self.email
 
 class LoginCode(CodePivot):
 	pass

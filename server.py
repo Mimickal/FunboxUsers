@@ -233,7 +233,7 @@ def addEmail():
 	PendingEmail.upsert(code=code_str, user=user, email=email)
 
 	# TODO we're hard coding this link for now
-	link = 'https://funbox.com.ru:20100/update/email/confirm/' + code.code
+	link = 'https://funbox.com.ru:20100/update/email/confirm/' + code
 	util.sendEmail(email, 'Funbox Email Verification',
 		'Hello from funbox! Use this link to verify your email: ' + link)
 
