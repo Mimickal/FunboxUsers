@@ -23,7 +23,7 @@ class User(BaseModel):
 		'''Gets a user by their name.'''
 		try:
 			user = User.select().where(User.name == name).get()
-			user.save(no_update_time=True)
+			user.save(update_time=False)
 			return user
 		except DoesNotExist:
 			return None
@@ -31,7 +31,7 @@ class User(BaseModel):
 	def save(self, *args, **kwargs):
 		timestamp = datetime.now()
 		# Popping here to avoid passing on the no_edits var.
-		if not kwargs.pop('no_update_time', False):
+		if kwargs.pop('update_time', True):
 			self.updated_at = timestamp
 		self.accessed_at = timestamp
 		return super(User, self).save(*args, **kwargs)
@@ -103,4 +103,3 @@ class LoginCode(CodePivot):
 
 db.connect()
 db.create_tables([User, Code, PendingEmail, LoginCode])
-
