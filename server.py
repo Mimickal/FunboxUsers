@@ -203,6 +203,13 @@ def changePassword():
 	new_hash = scrypt.hash(new1, user.pass_salt)
 	user.pass_hash = new_hash
 	user.save()
+
+	if user.email:
+		# TODO Unhardcode name
+		util.sendEmail(user.email, 'Funbox Password Change Notice',
+			'Hello from funbox! The password on your account was just changed. '
+			+ 'If this was not your doing then now is the time to scream.')
+
 	return ok()
 
 
