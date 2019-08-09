@@ -66,13 +66,13 @@ def databaseTests():
 			before = User.get_by_name(test_name).__dict__.get('__data__')
 			after = User.get_by_name(test_name).__dict__.get('__data__')
 
-			'''This works because the date is stored in nanoseconds.'''
+			#This works because the date is stored in nanoseconds.
 			assert_that(
 				before.pop('accessed_at'),
 				not_(after.pop('accessed_at'))
 			)
 
-			'''Make sure no other data was edited.'''
+			#Make sure no other data was edited.
 			assert_that(before, equal_to(after))
 
 
