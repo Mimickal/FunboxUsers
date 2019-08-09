@@ -3,3 +3,5 @@ scrypt
 Flask-WTF
 flask-limiter
 peewee
+pyyaml
+pysqlite3
