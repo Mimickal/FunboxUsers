@@ -61,13 +61,19 @@ def databaseTests():
 			user = User.get_by_name('badname')
 			assert_that(user, is_(none()))
 
-		@it('User accessed_at field updates')
+		@it('User accessed_at field updates (And nothing else)')
 		def userAccessedAt():
+			before = User.get_by_name(test_name).__dict__.get('__data__')
+			after = User.get_by_name(test_name).__dict__.get('__data__')
+
 			'''This works because the date is stored in nanoseconds.'''
 			assert_that(
-				User.get_by_name(test_name).accessed_at,
-				not_(equal_to(User.get_by_name(test_name).accessed_at))
+				before.pop('accessed_at'),
+				not_(after.pop('accessed_at'))
 			)
+
+			'''Make sure no other data was edited.'''
+			assert_that(before, equal_to(after))
 
 
 	@describe('Add User')

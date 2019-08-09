@@ -23,14 +23,16 @@ class User(BaseModel):
 		'''Gets a user by their name.'''
 		try:
 			user = User.select().where(User.name == name).get()
-			user.save()
+			user.save(no_update_time=True)
 			return user
 		except DoesNotExist:
 			return None
 
 	def save(self, *args, **kwargs):
 		timestamp = datetime.now()
-		self.updated_at = timestamp
+		# Popping here to avoid passing on the no_edits var.
+		if not kwargs.pop('no_update_time', False):
+			self.updated_at = timestamp
 		self.accessed_at = timestamp
 		return super(User, self).save(*args, **kwargs)
 
