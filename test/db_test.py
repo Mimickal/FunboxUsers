@@ -69,7 +69,7 @@ def databaseTests():
 			#This works because the date is stored in nanoseconds.
 			assert_that(
 				before.pop('accessed_at'),
-				not_(after.pop('accessed_at'))
+				not_(equal_to(after.pop('accessed_at')))
 			)
 
 			#Make sure no other data was edited.
