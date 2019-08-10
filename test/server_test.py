@@ -133,7 +133,7 @@ def serverTests():
 			assert_that(Code.get_by_code(code), not_none())
 			login_code = LoginCode.get_by_code(code)
 			assert_that(login_code, not_none())
-			assert_that(login_code.code.code, equal_to(code))
+			assert_that(login_code.code, equal_to(code))
 
 		@it('Missing CSRF token')
 		def missingCSRFToken():
@@ -263,7 +263,7 @@ def serverTests():
 			assert_that(Code.get_by_code(code), not_none())
 			login_code = LoginCode.get_by_code(code)
 			assert_that(login_code, not_none())
-			assert_that(login_code.code.code, equal_to(code))
+			assert_that(login_code.code, equal_to(code))
 
 		@it('User does not exist')
 		def userDoesNotExist():
@@ -383,7 +383,7 @@ def serverTests():
 				code = session['login']
 			login_code = LoginCode.get_by_user(test_user)
 			assert_that(login_code, not_none())
-			assert_that(login_code.code.code, equal_to(code))
+			assert_that(login_code.code, equal_to(code))
 			assert_that(Code.get_by_code(code).used_at, none())
 
 			# Do logout
@@ -655,7 +655,7 @@ def serverTests():
 			pending = PendingEmail.get_by_code(code)
 			assert_that(pending, not_none())
 			assert_that(pending.email, equal_to(email))
-			assert_that(pending.code.code, equal_to(code))
+			assert_that(pending.code, equal_to(code))
 
 		@it('Overwriting PendingEmail')
 		@patch('util.sendEmail')

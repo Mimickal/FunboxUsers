@@ -198,7 +198,7 @@ def databaseTests():
 			Code.create(code=test_code2)
 
 			code = Code.get_by_code(test_code1)
-			assert_that(code.code, equal_to(test_code1))
+			assert_that(code, equal_to(test_code1))
 			assert_that(code.used_at, none())
 			assertDateNearNow(code.created_at)
 
@@ -381,18 +381,18 @@ def databaseTests():
 			PendingEmail.create(code=added_code, user=test_user, email='aaa')
 			pending = PendingEmail.get_by_code(added_code)
 			assert_that(pending, not_none())
-			assert_that(pending.code.code, equal_to(added_code.code))
+			assert_that(pending.code, equal_to(added_code))
 
 		@it('Get by code LoginCode')
 		def getByCodeLogin():
 			LoginCode.create(code=added_code, user=test_user)
 			login = LoginCode.get_by_code(added_code)
 			assert_that(login, not_none())
-			assert_that(login.code.code, equal_to(added_code.code))
+			assert_that(login.code, equal_to(added_code))
 
 		@it('Upsert PendingEmail')
 		def upsertPending():
-			PendingEmail.create(code=added_code.code, user=test_user, email='aaa')
+			PendingEmail.create(code=added_code, user=test_user, email='aaa')
 			PendingEmail.upsert(code=added_code.code, user=test_user, email='bbb')
 			updated = PendingEmail.get_by_code(added_code)
 			assert_that(updated.email, equal_to('bbb'))
@@ -401,7 +401,7 @@ def databaseTests():
 		def upsertLogin():
 			LoginCode.upsert(code=added_code.code, user=test_user)
 			added = LoginCode.get_by_code(added_code)
-			assert_that(added.code.code, equal_to(added_code.code))
+			assert_that(added.code, equal_to(added_code))
 
 		@it('None returned for non-existing code')
 		def noneCode():
@@ -437,7 +437,7 @@ def databaseTests():
 			assert_that(Code.get_by_code(test_code1), equal_to(test_code1))
 
 		@it('Does not give false positive when comparing two different Code objects')
-		def strCodeCmp():
+		def codeCmp():
 			code1 = Code.get_by_code(test_code1)
 			code2 = Code.get_by_code(test_code2)
 
@@ -447,6 +447,9 @@ def databaseTests():
 			#Two codes with the same code (which I'm sure violates a constraint)
 			#should still not equal if any properties other than the code
 			#don't equate.
+			#
+			#If these equate there is something fundamentally wrong with the
+			# __eq__ override.
 			code2.code = code1.code
 			code2.used_at = datetime.now
 			assert_that(code1, not_(equal_to(code2)))
