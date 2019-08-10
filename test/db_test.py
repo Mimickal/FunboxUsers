@@ -4,6 +4,7 @@ import scrypt
 from time import sleep
 from datetime import datetime, timedelta
 from peewee import IntegrityError
+from copy import copy
 
 import testutil
 from db import User, Code, PendingEmail, LoginCode
@@ -413,6 +414,7 @@ def databaseTests():
 		def _beforeEach():
 			testutil.clearDatabase()
 			Code.create(code=test_code1)
+			Code.create(code=test_code2)
 
 		@it('Can convert to a string')
 		def strConv():
@@ -429,6 +431,25 @@ def databaseTests():
 			assert_that(prefix + code, equal_to(prefix + test_code1))
 			assert_that(code + prefix, equal_to(test_code1 + prefix))
 			assert_that(code + code, equal_to(test_code1 + test_code1))
+
+		@it('Handles comparisons against strings')
+		def strCmp():
+			assert_that(Code.get_by_code(test_code1), equal_to(test_code1))
+
+		@it('Does not give false positive when comparing two different Code objects')
+		def strCodeCmp():
+			code1 = Code.get_by_code(test_code1)
+			code2 = Code.get_by_code(test_code2)
+
+			#Two different codes should not equal each other.
+			assert_that(code1, not_(equal_to(code2)))
+
+			#Two codes with the same code (which I'm sure violates a constraint)
+			#should still not equal if any properties other than the code
+			#don't equate.
+			code2.code = code1.code
+			code2.used_at = datetime.now
+			assert_that(code1, not_(equal_to(code2)))
 
 	#TODO: In the future when PendingEmail is ready for tests,
 	#copy the Code Class test patterns into PendingEmail tests.

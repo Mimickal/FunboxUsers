@@ -44,6 +44,10 @@ class Code(BaseModel):
 		return self.code + other
 	def __radd__(self, other):
 		return other + self.code
+	def __eq__(self, other):
+		if isinstance(other, str):
+			return self.code == other
+		return super(Code, self).__eq__(other)
 
 	def get_by_code(code, include_used=False):
 		query = Code.select().where(Code.code == str(code))
