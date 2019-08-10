@@ -98,6 +98,9 @@ class CodePivot(BaseModel):
 
 	@classmethod
 	def upsert(subclass, **kwargs):
+		code = kwargs.pop('code', None)
+		if code is not None:
+			kwargs['code'] = str(code)
 		return subclass.insert(kwargs).on_conflict_replace().execute()
 
 class PendingEmail(CodePivot):

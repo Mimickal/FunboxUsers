@@ -393,13 +393,13 @@ def databaseTests():
 		@it('Upsert PendingEmail')
 		def upsertPending():
 			PendingEmail.create(code=added_code, user=test_user, email='aaa')
-			PendingEmail.upsert(code=added_code.code, user=test_user, email='bbb')
+			PendingEmail.upsert(code=added_code, user=test_user, email='bbb')
 			updated = PendingEmail.get_by_code(added_code)
 			assert_that(updated.email, equal_to('bbb'))
 
 		@it('Upsert LoginCode')
 		def upsertLogin():
-			LoginCode.upsert(code=added_code.code, user=test_user)
+			LoginCode.upsert(code=added_code, user=test_user)
 			added = LoginCode.get_by_code(added_code)
 			assert_that(added.code, equal_to(added_code))
 
