@@ -421,7 +421,7 @@ def databaseTests():
 			assert_that(str(code), equal_to(code.code))
 
 		@it('Handles string concat')
-		def strConv():
+		def strConcat():
 			code = Code.get_by_code(test_code1)
 
 			prefix = "somestuff"
