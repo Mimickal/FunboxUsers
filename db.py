@@ -88,7 +88,7 @@ class CodePivot(BaseModel):
 	@classmethod
 	def get_by_code(subclass, code):
 		try:
-			return subclass.select().where(subclass.code == code).get()
+			return subclass.select().where(subclass.code == str(code)).get()
 		except DoesNotExist:
 			return None
 

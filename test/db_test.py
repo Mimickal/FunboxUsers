@@ -378,14 +378,14 @@ def databaseTests():
 		@it('Get by code PendingEmail')
 		def getByCodePendingEmail():
 			PendingEmail.create(code=added_code, user=test_user, email='aaa')
-			pending = PendingEmail.get_by_code(added_code.code)
+			pending = PendingEmail.get_by_code(added_code)
 			assert_that(pending, not_none())
 			assert_that(pending.code.code, equal_to(added_code.code))
 
 		@it('Get by code LoginCode')
 		def getByCodeLogin():
 			LoginCode.create(code=added_code, user=test_user)
-			login = LoginCode.get_by_code(added_code.code)
+			login = LoginCode.get_by_code(added_code)
 			assert_that(login, not_none())
 			assert_that(login.code.code, equal_to(added_code.code))
 
@@ -393,13 +393,13 @@ def databaseTests():
 		def upsertPending():
 			PendingEmail.create(code=added_code.code, user=test_user, email='aaa')
 			PendingEmail.upsert(code=added_code.code, user=test_user, email='bbb')
-			updated = PendingEmail.get_by_code(added_code.code)
+			updated = PendingEmail.get_by_code(added_code)
 			assert_that(updated.email, equal_to('bbb'))
 
 		@it('Upsert LoginCode')
 		def upsertLogin():
 			LoginCode.upsert(code=added_code.code, user=test_user)
-			added = LoginCode.get_by_code(added_code.code)
+			added = LoginCode.get_by_code(added_code)
 			assert_that(added.code.code, equal_to(added_code.code))
 
 		@it('None returned for non-existing code')
