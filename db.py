@@ -106,14 +106,6 @@ class CodePivot(BaseModel):
 class PendingEmail(CodePivot):
 	email = TextField(null=False)
 
-	# This is all for automatic conversion to strings.
-	def __str__(self):
-		return self.email
-	def __add__(self, other):
-		return self.email + other
-	def __radd__(self, other):
-		return other + self.email
-
 class LoginCode(CodePivot):
 	pass
 

@@ -4,7 +4,6 @@ import scrypt
 from time import sleep
 from datetime import datetime, timedelta
 from peewee import IntegrityError
-from copy import copy
 
 import testutil
 from db import User, Code, PendingEmail, LoginCode
