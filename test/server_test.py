@@ -486,12 +486,14 @@ def serverTests():
 			csrf_header = { 'X-CSRFToken': getLoginCSRFToken() }
 
 		@it('Invalid session')
-		def invalidSession():
+		@patch('util.sendEmail')
+		def invalidSession(_):
 			response = app.put('/update/password', headers=csrf_header)
 			assertResponse(response, 403, 'Forbidden')
 
 		@it('Invalid login code')
-		def invalidLoginCode():
+		@patch('util.sendEmail')
+		def invalidLoginCode(_):
 			getLoginSession()
 			with app.session_transaction() as session:
 				session['login'] = 'badtoken'
@@ -505,7 +507,8 @@ def serverTests():
 			assertResponse(response, 400, 'Session expired. Reload and try again')
 
 		@it('Missing required fields')
-		def missingRequiredFields():
+		@patch('util.sendEmail')
+		def missingRequiredFields(_):
 			getLoginSession()
 			res = app.put('/update/password', headers=csrf_header, json={
 				'pass_new': new_pass,
@@ -526,13 +529,15 @@ def serverTests():
 			assertResponse(res, 400, 'Missing fields')
 
 		@it('Missing data entirely')
-		def missingDataEntirely():
+		@patch('util.sendEmail')
+		def missingDataEntirely(_):
 			getLoginSession()
 			response = app.put('/update/password', headers=csrf_header, data={})
 			assertResponse(response, 400, 'Missing json data')
 
 		@it('Old password incorrect')
-		def oldPasswordIncorrect():
+		@patch('util.sendEmail')
+		def oldPasswordIncorrect(_):
 			getLoginSession()
 			response = app.put('/update/password', headers=csrf_header, json={
 				'pass_old': 'definitely wrong',
@@ -542,7 +547,8 @@ def serverTests():
 			assertResponse(response, 400, 'Old password incorrect')
 
 		@it('New password and confirmation do not match')
-		def newPassConfDoesntMatch():
+		@patch('util.sendEmail')
+		def newPassConfDoesntMatch(_):
 			getLoginSession()
 			response = app.put('/update/password', headers=csrf_header, json={
 				'pass_old': test_pass,
@@ -552,7 +558,8 @@ def serverTests():
 			assertResponse(response, 400, 'Passwords do not match')
 
 		@it('New password must not be empty')
-		def newPassConfDoesntMatch():
+		@patch('util.sendEmail')
+		def newPassConfDoesntMatch(_):
 			getLoginSession()
 			response = app.put('/update/password', headers=csrf_header, json={
 				'pass_old': test_pass,
@@ -562,7 +569,8 @@ def serverTests():
 			assertResponse(response, 400, 'Invalid password')
 
 		@it('Fields must all be strings')
-		def allFieldsAreStrings():
+		@patch('util.sendEmail')
+		def allFieldsAreStrings(_):
 			getLoginSession()
 			response = app.put('/update/password', headers=csrf_header, json={
 				'pass_old': [test_pass],
@@ -579,7 +587,8 @@ def serverTests():
 			assertResponse(response, 400, 'Invalid password')
 
 		@it('Successful password change')
-		def passwordChangeSuccess():
+		@patch('util.sendEmail')
+		def passwordChangeSuccess(_):
 			getLoginSession()
 			response = app.put('/update/password', headers=csrf_header, json={
 				'pass_old': test_pass,
@@ -591,6 +600,25 @@ def serverTests():
 			new_hash = scrypt.hash(new_pass, test_salt)
 			user = User.get_by_name(test_name)
 			assert_that(user.pass_hash, equal_to(new_hash))
+
+		@it('User notified by email')
+		@patch('util.sendEmail')
+		def passwordChangeNotifiesByEmail(mock_emailer):
+			getLoginSession()
+			response = app.put('/update/password', headers=csrf_header, json={
+				'pass_old': test_pass,
+				'pass_new': new_pass,
+				'pass_new_conf': new_pass
+			})
+			assertResponse(response, 200, 'Ok')
+
+			# Check email was sent with valid code
+			args = mock_emailer.call_args[0]
+			assert_that(args[0], equal_to(test_email))
+			assert_that(args[1], equal_to('Funbox Password Change Notice'))
+			assert_that(args[2], contains_string('change'))
+			assert_that(args[2], contains_string('password'))
+			assert_that(args[2], contains_string(test_name))
 
 	@describe('Add Email')
 	def addEmail():

@@ -8,6 +8,7 @@ import yaml
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from playhouse.shortcuts import model_to_dict
+import html
 
 from db import User, Code, PendingEmail, LoginCode
 import util
@@ -203,6 +204,14 @@ def changePassword():
 	new_hash = scrypt.hash(new1, user.pass_salt)
 	user.pass_hash = new_hash
 	user.save()
+
+	if user.email:
+		# TODO Unhardcode name
+		util.sendEmail(user.email, 'Funbox Password Change Notice',
+			'Hello from funbox! The password for %s was just changed. '
+			'If this was not your doing then now is the time to scream.'
+			% (html.escape(user.name)))
+
 	return ok()
 
 
