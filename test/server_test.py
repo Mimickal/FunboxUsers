@@ -186,6 +186,23 @@ def serverTests():
 			})
 			assertResponse(res, 400, 'Already logged in')
 
+		@it('Clearing client cookie while logged in')
+		def clearCookieWhenLoggedIn():
+			getLoginSession()
+			with app.session_transaction() as session:
+				assert_that(session.get('login'), not_none())
+				old_code = session.pop('login')
+
+			res = app.post('/login/form', data={
+				'csrf_token': getLoginCSRFToken(),
+				'username': test_name,
+				'password': test_pass,
+			})
+			assertResponse(res, 200, 'Ok')
+
+			with app.session_transaction() as session:
+				assert_that(session.get('login'), not_(equal_to(old_code)))
+
 	@describe('Login basic auth')
 	def loginBasic():
 
@@ -341,6 +358,24 @@ def serverTests():
 			}
 			res = app.post('/login/json', headers=headers, json=json)
 			assertResponse(res, 400, 'Already logged in')
+
+		@it('Clearing client cookie while logged in')
+		def clearCookieWhenLoggedIn():
+			getLoginSession()
+			with app.session_transaction() as session:
+				assert_that(session.get('login'), not_none())
+				old_code = session.pop('login')
+
+			headers = { 'X-CSRFToken': getLoginCSRFToken() }
+			json = {
+				'username': test_name,
+				'password': test_pass
+			}
+			res = app.post('/login/json', headers=headers, json=json)
+			assertResponse(res, 200, 'Ok')
+
+			with app.session_transaction() as session:
+				assert_that(session.get('login'), not_(equal_to(old_code)))
 
 	@describe('Log out user')
 	def logoutUser():
