@@ -8,6 +8,7 @@ import yaml
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from playhouse.shortcuts import model_to_dict
+import socket
 
 from db import User, Code, PendingEmail, LoginCode
 import util
@@ -236,7 +237,7 @@ def addEmail():
 	PendingEmail.upsert(code=code_str, user=user, email=email)
 
 	# Use HOSTNAME from the top of the file if it's not empty.
-	link = (HOSTNAME or request.host_url) + 'update/email/confirm/' + code.code
+	link = socket.getfqdn() + 'update/email/confirm/' + code.code
 	util.sendEmail(email, NAME + ' Email Verification',
 		'Hello from ' + NAME + '! Use this link to verify your email: ' + link)
 
