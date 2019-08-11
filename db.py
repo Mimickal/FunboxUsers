@@ -103,3 +103,4 @@ class LoginCode(CodePivot):
 
 db.connect()
 db.create_tables([User, Code, PendingEmail, LoginCode])
+
