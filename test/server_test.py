@@ -618,6 +618,7 @@ def serverTests():
 			assert_that(args[1], equal_to('Funbox Password Change Notice'))
 			assert_that(args[2], contains_string('change'))
 			assert_that(args[2], contains_string('password'))
+			assert_that(args[2], contains_string(test_name))
 
 	@describe('Add Email')
 	def addEmail():

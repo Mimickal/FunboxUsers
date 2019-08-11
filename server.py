@@ -207,8 +207,9 @@ def changePassword():
 	if user.email:
 		# TODO Unhardcode name
 		util.sendEmail(user.email, 'Funbox Password Change Notice',
-			'Hello from funbox! The password on your account was just changed. '
-			'If this was not your doing then now is the time to scream.')
+			'Hello from funbox! The password for %s was just changed. '
+			'If this was not your doing then now is the time to scream.'
+			% (user.name))
 
 	return ok()
 
