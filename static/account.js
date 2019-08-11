@@ -51,6 +51,10 @@ window.onload = function() {
 
 	// Load the logged in user's data
 	window.fetch('./user').then(async function(res) {
+		if (!res.ok) {
+			return;
+		}
+
 		let data = await res.json();
 		username.textContent = data.name;
 		if (data.email || data.email_pending) {
