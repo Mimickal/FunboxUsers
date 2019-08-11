@@ -4,6 +4,7 @@ import scrypt
 from time import sleep
 from datetime import datetime, timedelta
 from peewee import IntegrityError
+from playhouse.shortcuts import model_to_dict
 
 import testutil
 from db import User, Code, PendingEmail, LoginCode
@@ -60,6 +61,27 @@ def databaseTests():
 		def noUserFound():
 			user = User.get_by_name('badname')
 			assert_that(user, is_(none()))
+
+		@it('User accessed_at field updates (And nothing else)')
+		def userAccessedAt():
+			before = User.get_by_name(test_name)
+			after = User.get_by_name(test_name)
+
+			#This works because the date is stored in nanoseconds.
+			assert_that(
+				before.accessed_at,
+				not_(equal_to(after.accessed_at))
+			)
+
+			before = model_to_dict(before)
+			after = model_to_dict(after)
+
+			before.pop('accessed_at')
+			after.pop('accessed_at')
+
+			#Make sure no other data was edited.
+			assert_that(before, equal_to(after))
+
 
 	@describe('Add User')
 	def addUser():

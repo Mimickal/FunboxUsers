@@ -22,13 +22,17 @@ class User(BaseModel):
 	def get_by_name(name):
 		'''Gets a user by their name.'''
 		try:
-			return User.select().where(User.name == name).get()
+			user = User.select().where(User.name == name).get()
+			user.save(update_time=False)
+			return user
 		except DoesNotExist:
 			return None
 
 	def save(self, *args, **kwargs):
 		timestamp = datetime.now()
-		self.updated_at = timestamp
+		# Popping here to avoid passing on the update_time var.
+		if kwargs.pop('update_time', True):
+			self.updated_at = timestamp
 		self.accessed_at = timestamp
 		return super(User, self).save(*args, **kwargs)
 
