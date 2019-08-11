@@ -64,14 +64,20 @@ def databaseTests():
 
 		@it('User accessed_at field updates (And nothing else)')
 		def userAccessedAt():
-			before = model_to_dict(User.get_by_name(test_name))
-			after = model_to_dict(User.get_by_name(test_name))
+			before = User.get_by_name(test_name)
+			after = User.get_by_name(test_name)
 
 			#This works because the date is stored in nanoseconds.
 			assert_that(
-				before.pop('accessed_at'),
-				not_(equal_to(after.pop('accessed_at')))
+				before.accessed_at,
+				not_(equal_to(after.accessed_at))
 			)
+
+			before = model_to_dict(before)
+			after = model_to_dict(after)
+
+			before.pop('accessed_at')
+			after.pop('accessed_at')
 
 			#Make sure no other data was edited.
 			assert_that(before, equal_to(after))
