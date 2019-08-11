@@ -4,6 +4,7 @@ import scrypt
 from time import sleep
 from datetime import datetime, timedelta
 from peewee import IntegrityError
+from playhouse.shortcuts import model_to_dict
 
 import testutil
 from db import User, Code, PendingEmail, LoginCode
@@ -63,8 +64,8 @@ def databaseTests():
 
 		@it('User accessed_at field updates (And nothing else)')
 		def userAccessedAt():
-			before = User.get_by_name(test_name).__dict__.get('__data__')
-			after = User.get_by_name(test_name).__dict__.get('__data__')
+			before = model_to_dict(User.get_by_name(test_name))
+			after = model_to_dict(User.get_by_name(test_name))
 
 			#This works because the date is stored in nanoseconds.
 			assert_that(
