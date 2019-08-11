@@ -235,7 +235,6 @@ def addEmail():
 	code = Code.get_by_code(code_str)
 	PendingEmail.upsert(code=code_str, user=user, email=email)
 
-	# Use HOSTNAME from the top of the file if it's not empty.
 	link = socket.getfqdn() + 'update/email/confirm/' + code.code
 	util.sendEmail(email, NAME + ' Email Verification',
 		'Hello from ' + NAME + '! Use this link to verify your email: ' + link)
