@@ -28,6 +28,8 @@ window.onload = function() {
 
 	var emailInput = document.getElementsByName("email_new")[0];
 
+	var logoutBtn = byId("logout-btn");
+
 	var displayEmailUnconf;
 	var displayEmailConf;
 
@@ -44,6 +46,8 @@ window.onload = function() {
 	emailChangeBtn.onclick = showEmailForm;
 	emailCancelBtn.onclick = hideEmailForm;
 	emailSubmitBtn.onclick = submitEmail;
+
+	logoutBtn.onclick = logout;
 
 	// Load the logged in user's data
 	window.fetch('./user').then(async function(res) {
@@ -229,6 +233,17 @@ window.onload = function() {
 			emailInput.setAttribute("class", "issue");
 			emailIssue.textContent = "Invalid email";
 		}
+	}
+
+	function logout() {
+		window.fetch('./logout', {
+			method: 'post',
+			headers: {
+				'X-CSRFToken': csrfInput.value
+			}
+		}).then(function(res) {
+			window.location.reload();
+		}).catch(console.err);
 	}
 
 };

@@ -58,9 +58,9 @@
 		<div>Coming soon!</div>
 		<div></div>
 	</div>
-	<form id="logout-form" method="post" action="/logout">
+	<form>
 		<input id="csrf" type=hidden name="csrf_token" value="{{ csrf_token() }}"/>
-		<button type=submit class="red logout-button">Logout</button>
+		<button id="logout-btn" type=button class="red logout-button">Logout</button>
 	</form>
 </div>
 </body>
