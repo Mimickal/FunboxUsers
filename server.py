@@ -20,7 +20,6 @@ CODE_SIZE = 8
 LOGIN_COOKIE_SIZE = 16
 
 NAME = 'Funbox'
-HOSTNAME = '' #'https://funbox.com.ru:20100/'
 
 app = Flask('Funbox Accounts')
 app.secret_key = util.getSecretKey('secret.key')
