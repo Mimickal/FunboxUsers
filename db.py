@@ -41,8 +41,20 @@ class Code(BaseModel):
 	created_at = DateTimeField(default=datetime.now())
 	used_at    = DateTimeField(null=True)
 
+	# This is all for automatic conversion to strings.
+	def __str__(self):
+		return self.code
+	def __add__(self, other):
+		return self.code + other
+	def __radd__(self, other):
+		return other + self.code
+	def __eq__(self, other):
+		if isinstance(other, str):
+			return self.code == other
+		return super(Code, self).__eq__(other)
+
 	def get_by_code(code, include_used=False):
-		query = Code.select().where(Code.code == code)
+		query = Code.select().where(Code.code == str(code))
 		if not include_used:
 			query = query.where(Code.used_at.is_null())
 		try:
@@ -52,7 +64,7 @@ class Code(BaseModel):
 
 	def use_code(code):
 		'''Sets a code's used_at field, effectively marking it as used.'''
-		Code.update(used_at=datetime.now()).where(Code.code == code).execute()
+		Code.update(used_at=datetime.now()).where(Code.code == str(code)).execute()
 
 	def cull_old_codes():
 		'''Deletes all old, unused codes.'''
@@ -84,15 +96,15 @@ class CodePivot(BaseModel):
 	@classmethod
 	def get_by_code(subclass, code):
 		try:
-			return subclass.select().where(subclass.code == code).get()
+			return subclass.select().where(subclass.code == str(code)).get()
 		except DoesNotExist:
 			return None
 
 	@classmethod
 	def upsert(subclass, **kwargs):
-		# FIXME temporary sanity-preserving patch until we get to issue #64.
-		if not isinstance(kwargs.get('code', None), str):
-			raise Exception('Need a code string, not an object')
+		code = kwargs.pop('code', None)
+		if code is not None:
+			kwargs['code'] = str(code)
 		return subclass.insert(kwargs).on_conflict_replace().execute()
 
 class PendingEmail(CodePivot):
