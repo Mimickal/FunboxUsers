@@ -428,7 +428,7 @@ def serverTests():
 
 			# Do logout
 			response = app.post('/logout', headers=csrf_header)
-			assertResponse(response, 200, 'Ok')
+			assertRedirect(response, '/login')
 
 			# Verify session information has been destroyed
 			with app.session_transaction() as session:

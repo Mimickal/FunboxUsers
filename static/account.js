@@ -70,7 +70,7 @@ window.onload = function() {
 		} else {
 			showEmailForm();
 		}
-	}).catch(console.err);
+	}).catch(console.error);
 
 	function hidePasswordForm() {
 		show(passRedacted);
@@ -246,8 +246,12 @@ window.onload = function() {
 				'X-CSRFToken': csrfInput.value
 			}
 		}).then(function(res) {
-			window.location.reload();
-		}).catch(console.err);
+			if (res.redirected) {
+				window.location = res.url;
+			} else {
+				console.error(res);
+			}
+		}).catch(console.error);
 	}
 
 };

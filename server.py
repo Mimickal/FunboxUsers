@@ -146,7 +146,7 @@ def logout():
 	login.delete_instance()
 	Code.use_code(login_code)
 	session.pop('login')
-	return ok()
+	return redirect('/login')
 
 
 @app.route('/account', methods=['GET'])
