@@ -117,7 +117,7 @@ def verifyLogin(username, password, cookie=False):
 		if cookie:
 			code_str = util.makeUniqueCode(LOGIN_COOKIE_SIZE)
 			code = Code.get_by_code(code_str)
-			LoginCode.create(user=user, code=code)
+			LoginCode.upsert(user=user, code=code_str)
 			session['login'] = code_str
 		return ok()
 	else:
