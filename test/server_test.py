@@ -91,6 +91,22 @@ def serverTests():
 		testutil.clearDatabase()
 		enableRateLimiter(False)
 
+	@describe('Login page')
+	def loginPage():
+
+		@beforeEach
+		def _beforeEach():
+			with app.session_transaction() as session:
+				session.clear()
+			testutil.clearDatabase()
+			createTestUser()
+
+		@it('Redirects to account page when already logged in')
+		def redirectToAccount():
+			getLoginSession()
+			response = app.get('/login')
+			assertRedirect(response, '/account')
+
 	@describe('Login form')
 	def loginForm():
 

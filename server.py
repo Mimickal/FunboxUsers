@@ -56,7 +56,11 @@ def handle_CSRFError(err):
 @app.route('/login', methods=['GET'])
 def getLogin():
 	csrf.protect()
-	return render_template('login.html');
+
+	if LoginCode.get_by_code(session.get('login')):
+		return redirect('/account')
+	else:
+		return render_template('login.html')
 
 
 @login_limit
