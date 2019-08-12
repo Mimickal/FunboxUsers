@@ -120,7 +120,7 @@ def verifyLogin(username, password, cookie=False):
 		if cookie:
 			code_str = util.makeUniqueCode(LOGIN_COOKIE_SIZE)
 			code = Code.get_by_code(code_str)
-			LoginCode.create(user=user, code=code)
+			LoginCode.upsert(user=user, code=code_str)
 			session['login'] = code_str
 		return ok()
 	else:
@@ -242,22 +242,22 @@ def addEmail():
 	# Create an email verify code
 	code_str = util.makeUniqueCode(CODE_SIZE)
 	code = Code.get_by_code(code_str)
-	PendingEmail.upsert(code=code_str, user=user, email=email)
+	PendingEmail.upsert(code=code, user=user, email=email)
 
-	link = socket.getfqdn() + 'update/email/confirm/' + code.code
+	link = socket.getfqdn() + 'update/email/confirm/' + code
 	util.sendEmail(email, NAME + ' Email Verification',
 		'Hello from ' + NAME + '! Use this link to verify your email: ' + link)
 
 	return ok()
 
 
-@app.route('/update/email/confirm/<code_str>', methods=['GET'])
-def confirmEmail(code_str):
+@app.route('/update/email/confirm/<code>', methods=['GET'])
+def confirmEmail(code):
 	global CODE_VALIDATOR
-	if CODE_VALIDATOR.match(code_str) is None:
+	if CODE_VALIDATOR.match(code) is None:
 		return forbidden()
 
-	pending = PendingEmail.get_by_code(code_str)
+	pending = PendingEmail.get_by_code(code)
 	if pending is None:
 		return forbidden()
 
@@ -268,7 +268,7 @@ def confirmEmail(code_str):
 
 	user.email = pending.email
 	user.save()
-	Code.use_code(code_str)
+	Code.use_code(code)
 	pending.delete()
 
 	return ok()
