@@ -8,6 +8,7 @@ import yaml
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from playhouse.shortcuts import model_to_dict
+import socket
 import html
 
 from db import User, Code, PendingEmail, LoginCode
@@ -18,6 +19,8 @@ EMAIL_VALIDATOR = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
 CODE_VALIDATOR = re.compile(r'^(\w{8})$')
 CODE_SIZE = 8
 LOGIN_COOKIE_SIZE = 16
+
+NAME = 'Funbox'
 
 app = Flask('Funbox Accounts')
 app.secret_key = util.getSecretKey('secret.key')
@@ -241,10 +244,9 @@ def addEmail():
 	code = Code.get_by_code(code_str)
 	PendingEmail.upsert(code=code, user=user, email=email)
 
-	# TODO we're hard coding this link for now
-	link = 'https://funbox.com.ru:20100/update/email/confirm/' + code
-	util.sendEmail(email, 'Funbox Email Verification',
-		'Hello from funbox! Use this link to verify your email: ' + link)
+	link = socket.getfqdn() + 'update/email/confirm/' + code
+	util.sendEmail(email, NAME + ' Email Verification',
+		'Hello from ' + NAME + '! Use this link to verify your email: ' + link)
 
 	return ok()
 
