@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, session, jsonify
+from flask import Flask, request, render_template, session, jsonify, redirect
 from flask_wtf.csrf import CSRFProtect, CSRFError
 import scrypt
 import re
@@ -122,7 +122,9 @@ def verifyLogin(username, password, cookie=False):
 			code = Code.get_by_code(code_str)
 			LoginCode.upsert(user=user, code=code_str)
 			session['login'] = code_str
-		return ok()
+			return redirect('/account')
+		else:
+			return ok()
 	else:
 		return forbidden()
 

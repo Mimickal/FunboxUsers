@@ -25,6 +25,11 @@ def assertResponse(response, code, text, desc=None):
 	assert_that(response.status_code, equal_to(code), desc)
 	assert_that(response.get_data(as_text=True), equal_to(text), desc)
 
+def assertRedirect(response, url):
+	assert_that(response.status_code, equal_to(302))
+	got_url = re.search('href="([.\/\w]+)"', response.get_data(as_text=True)).group(1)
+	assert_that(got_url, equal_to(url))
+
 def getJsonFrom(response):
 	return json.loads(response.get_data(as_text=True))
 
@@ -58,7 +63,7 @@ def serverTests():
 			'username': test_name,
 			'password': test_pass
 		})
-		assertResponse(response, 200, 'Ok')
+		assertRedirect(response, '/account')
 
 	# TODO can we move this?
 	def enableRateLimiter(is_enabled):
@@ -126,7 +131,7 @@ def serverTests():
 				'username': test_name,
 				'password': test_pass
 			})
-			assertResponse(response, 200, 'Ok')
+			assertRedirect(response, '/account')
 			with app.session_transaction() as session:
 				code = session.get('login', None)
 				assert_that(code, not_none())
@@ -198,7 +203,7 @@ def serverTests():
 				'username': test_name,
 				'password': test_pass,
 			})
-			assertResponse(res, 200, 'Ok')
+			assertRedirect(res, '/account')
 
 			with app.session_transaction() as session:
 				assert_that(session.get('login'), not_(equal_to(old_code)))
@@ -273,7 +278,7 @@ def serverTests():
 					'password': test_pass
 				}
 			)
-			assertResponse(response, 200, 'Ok')
+			assertRedirect(response, '/account')
 			with app.session_transaction() as session:
 				code = session.get('login', None)
 				assert_that(code, not_none())
@@ -372,7 +377,7 @@ def serverTests():
 				'password': test_pass
 			}
 			res = app.post('/login/json', headers=headers, json=json)
-			assertResponse(res, 200, 'Ok')
+			assertRedirect(res, '/account')
 
 			with app.session_transaction() as session:
 				assert_that(session.get('login'), not_(equal_to(old_code)))

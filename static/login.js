@@ -26,10 +26,9 @@ window.onload = function() {
 			})
 		});
 
-		if (res.status === 200) {
-			// TODO replace this with account page, obviously
-			window.location = 'https://www.google.com';
-		} else {
+		if (!res.ok) {
+			console.error(res);
+
 			// TODO enable utility?
 			userInput.disabled = false;
 			passInput.disabled = false;
@@ -37,6 +36,8 @@ window.onload = function() {
 
 			let text = await res.text();
 			setIssue(text === 'Forbidden' ? 'Invalid user or password' : text);
+		} else if (res.redirected) {
+			window.location = res.url;
 		}
 	};
 
