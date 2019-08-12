@@ -133,7 +133,7 @@ def serverTests():
 			assert_that(Code.get_by_code(code), not_none())
 			login_code = LoginCode.get_by_code(code)
 			assert_that(login_code, not_none())
-			assert_that(login_code.code.code, equal_to(code))
+			assert_that(login_code.code, equal_to(code))
 
 		@it('Missing CSRF token')
 		def missingCSRFToken():
@@ -185,6 +185,23 @@ def serverTests():
 				'password': test_pass
 			})
 			assertResponse(res, 400, 'Already logged in')
+
+		@it('Clearing client cookie while logged in')
+		def clearCookieWhenLoggedIn():
+			getLoginSession()
+			with app.session_transaction() as session:
+				assert_that(session.get('login'), not_none())
+				old_code = session.pop('login')
+
+			res = app.post('/login/form', data={
+				'csrf_token': getLoginCSRFToken(),
+				'username': test_name,
+				'password': test_pass,
+			})
+			assertResponse(res, 200, 'Ok')
+
+			with app.session_transaction() as session:
+				assert_that(session.get('login'), not_(equal_to(old_code)))
 
 	@describe('Login basic auth')
 	def loginBasic():
@@ -263,7 +280,7 @@ def serverTests():
 			assert_that(Code.get_by_code(code), not_none())
 			login_code = LoginCode.get_by_code(code)
 			assert_that(login_code, not_none())
-			assert_that(login_code.code.code, equal_to(code))
+			assert_that(login_code.code, equal_to(code))
 
 		@it('User does not exist')
 		def userDoesNotExist():
@@ -342,6 +359,24 @@ def serverTests():
 			res = app.post('/login/json', headers=headers, json=json)
 			assertResponse(res, 400, 'Already logged in')
 
+		@it('Clearing client cookie while logged in')
+		def clearCookieWhenLoggedIn():
+			getLoginSession()
+			with app.session_transaction() as session:
+				assert_that(session.get('login'), not_none())
+				old_code = session.pop('login')
+
+			headers = { 'X-CSRFToken': getLoginCSRFToken() }
+			json = {
+				'username': test_name,
+				'password': test_pass
+			}
+			res = app.post('/login/json', headers=headers, json=json)
+			assertResponse(res, 200, 'Ok')
+
+			with app.session_transaction() as session:
+				assert_that(session.get('login'), not_(equal_to(old_code)))
+
 	@describe('Log out user')
 	def logoutUser():
 
@@ -383,7 +418,7 @@ def serverTests():
 				code = session['login']
 			login_code = LoginCode.get_by_user(test_user)
 			assert_that(login_code, not_none())
-			assert_that(login_code.code.code, equal_to(code))
+			assert_that(login_code.code, equal_to(code))
 			assert_that(Code.get_by_code(code).used_at, none())
 
 			# Do logout
@@ -683,7 +718,7 @@ def serverTests():
 			pending = PendingEmail.get_by_code(code)
 			assert_that(pending, not_none())
 			assert_that(pending.email, equal_to(email))
-			assert_that(pending.code.code, equal_to(code))
+			assert_that(pending.code, equal_to(code))
 
 		@it('Overwriting PendingEmail')
 		@patch('util.sendEmail')
