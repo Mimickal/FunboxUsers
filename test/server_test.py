@@ -107,11 +107,15 @@ def serverTests():
 			response = app.get('/login')
 			assertRedirect(response, '/account')
 
+		#NOTE getting page HTML when not logged in is covered by getLoginSession
+
 	@describe('Login form')
 	def loginForm():
 
 		@beforeEach
 		def _beforeEach():
+			with app.session_transaction() as session:
+				session.clear()
 			testutil.clearDatabase()
 			createTestUser()
 			enableRateLimiter(False)
@@ -451,6 +455,31 @@ def serverTests():
 				assert_that(session.get('login', None), none())
 			assert_that(LoginCode.get_by_user(test_user), none())
 			assert_that(Code.get_by_code(code, include_used=True).used_at, not_none())
+
+	@describe('Account page')
+	def accountPage():
+
+		@beforeEach
+		def _beforeEach():
+			with app.session_transaction() as session:
+				session.clear()
+			testutil.clearDatabase()
+			createTestUser()
+
+		@it('Get account page when logged in')
+		def getAccountHTML():
+			getLoginSession()
+			response = app.get('/account')
+			assert_that(response.status_code, equal_to(200))
+			assert_that(
+				response.get_data(as_text=True),
+				contains_string('<title>Funbox Account Overview</title>')
+			)
+
+		@it('Redirected to login page when not logged in')
+		def redirectToLogin():
+			response = app.get('/account')
+			assertRedirect(response, '/login')
 
 	@describe('Fetch logged in user')
 	def getAccountInfo():

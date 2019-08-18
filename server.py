@@ -156,7 +156,11 @@ def logout():
 @app.route('/account', methods=['GET'])
 def getAccount():
 	csrf.protect()
-	return render_template('account.html');
+
+	if LoginCode.get_by_code(session.get('login')):
+		return render_template('account.html')
+	else:
+		return redirect('/login')
 
 
 @app.route('/user', methods=['GET'])
