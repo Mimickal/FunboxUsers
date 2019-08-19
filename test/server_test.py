@@ -758,6 +758,14 @@ def serverTests():
 			response = app.put('/update/email', json={ 'email': 'a@a.a'})
 			assertResponse(response, 400, 'Session expired. Reload and try again')
 
+		@it('New email matches old email')
+		def matchingEmail():
+			getLoginSession()
+			response = app.put('/update/email', headers=csrf_header, json={
+				'email': test_email
+			})
+			assertResponse(response, 200, 'New email matches old email')
+
 		def extractCodeFromEmail(body):
 			match = re.search(r'email\/confirm\/(\w{8})', body)
 			assert_that(match, not_none())

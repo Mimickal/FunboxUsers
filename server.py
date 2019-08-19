@@ -260,6 +260,9 @@ def addEmail():
 	if not email or not EMAIL_VALIDATOR.match(email):
 		return 'Invalid email', 400
 
+	if email == user.email:
+		return 'New email matches old email', 200
+
 	# Create an email verify code
 	code_str = util.makeUniqueCode(CODE_SIZE)
 	code = Code.get_by_code(code_str)
