@@ -269,7 +269,10 @@ def addEmail():
 	util.sendEmail(email, NAME + ' Email Verification',
 		'Hello from ' + NAME + '! Use this link to verify your email: ' + link)
 
-	return ok()
+	return jsonify({
+		'email': user.email,
+		'email_pending': email
+	})
 
 
 @app.route('/update/email/confirm/<code>', methods=['GET'])

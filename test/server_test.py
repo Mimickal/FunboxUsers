@@ -771,7 +771,11 @@ def serverTests():
 			response = app.put('/update/email', headers=csrf_header, json={
 				'email': email
 			})
-			assertResponse(response, 200, 'Ok')
+			assert_that(response.status_code, equal_to(200))
+			assert_that(getJsonFrom(response), equal_to({
+				'email': test_email,
+				'email_pending': email
+			}))
 
 			# Check email was sent with valid code
 			args = mock_emailer.call_args[0]
@@ -796,7 +800,11 @@ def serverTests():
 			response = app.put('/update/email', headers=csrf_header, json={
 				'email': email1
 			})
-			assertResponse(response, 200, 'Ok')
+			assert_that(response.status_code, equal_to(200))
+			assert_that(getJsonFrom(response), equal_to({
+				'email': test_email,
+				'email_pending': email1
+			}))
 			code1 = extractCodeFromEmail(mock_emailer.call_args[0][2])
 			pending1 = PendingEmail.get_by_code(code1)
 
@@ -804,7 +812,11 @@ def serverTests():
 			response = app.put('/update/email', headers=csrf_header, json={
 				'email': email2
 			})
-			assertResponse(response, 200, 'Ok')
+			assert_that(response.status_code, equal_to(200))
+			assert_that(getJsonFrom(response), equal_to({
+				'email': test_email,
+				'email_pending': email2
+			}))
 			code2 = extractCodeFromEmail(mock_emailer.call_args[0][2])
 			pending2 = PendingEmail.get_by_code(code2)
 
