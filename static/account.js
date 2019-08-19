@@ -223,13 +223,23 @@ window.onload = function() {
 				body: JSON.stringify({
 					email: emailInput.value
 				})
-			}).then(function(res) {
+			}).then(async function(res) {
 				hideEmailForm();
-				emailCurrent.textContent = res.email_new;
+				hide(emailConfSymbol);
+				hide(emailUnconfSymbol);
+
+				data = await res.json();
+
+				if (data.email) {
+					emailCurrent.textContent = data.email;
+					show(emailConfSymbol);
+				}
+				if (data.email_pending) {
+					emailNew.textContent = data.email_pending;
+					show(emailUnconfSymbol);
+				}
 
 				// Both change symbols and override default display modes
-				hide(emailConfSymbol);
-				show(emailUnconfSymbol);
 				displayEmailConf = "none";
 				displayEmailUnconf = "block";
 			}).catch(function(err) {
