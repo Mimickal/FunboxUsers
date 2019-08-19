@@ -224,28 +224,31 @@ window.onload = function() {
 					email: emailInput.value
 				})
 			}).then(async function(res) {
-				hideEmailForm();
-				hide(emailConfSymbol);
-				hide(emailUnconfSymbol);
+				let text = await res.text();
+				if (res.ok && text !== 'New email matches old email') {
+					hideEmailForm();
+					hide(emailConfSymbol);
+					hide(emailUnconfSymbol);
 
-				data = await res.json();
+					let data = await res.json();
 
-				if (data.email) {
-					emailCurrent.textContent = data.email;
-					show(emailConfSymbol);
+					if (data.email) {
+						emailCurrent.textContent = data.email;
+						show(emailConfSymbol);
+					}
+					if (data.email_pending) {
+						emailNew.textContent = data.email_pending;
+						show(emailUnconfSymbol);
+					}
+
+					// Both change symbols and override default display modes
+					displayEmailConf = "none";
+					displayEmailUnconf = "block";
+				} else {
+					enableEmailForm();
+					emailIssue.textContent = text;
 				}
-				if (data.email_pending) {
-					emailNew.textContent = data.email_pending;
-					show(emailUnconfSymbol);
-				}
-
-				// Both change symbols and override default display modes
-				displayEmailConf = "none";
-				displayEmailUnconf = "block";
-			}).catch(function(err) {
-				enableEmailForm();
-				emailIssue.textContent = err;
-			});
+			}).catch(console.error);
 		} else {
 			emailInput.setAttribute("class", "issue");
 			emailIssue.textContent = "Invalid email";
