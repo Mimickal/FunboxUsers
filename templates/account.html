@@ -1,0 +1,67 @@
+<!--Test this with and without javascript to see how it works-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+	<link rel="stylesheet" href="{{ url_for('static', filename='funbox.css') }}"/>
+	<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+	<script src="{{ url_for('static', filename='account.js') }}"></script>
+</head>
+<body>
+<div class="fb-pane">
+	<h1>Account overview</h1>
+	<div class="grid-container">
+		<div class="grid-label">USERNAME</div>
+		<div id="username">[your name here]</div>
+		<div class="grid-blank"></div>
+
+		<div class="grid-label">PASSWORD</div>
+		<div>
+			<div id="pass-redacted">Redacted, obviously</div>
+			<form id="pass-change-form">
+				<input id="csrf" type=hidden name="csrf_token" value="{{ csrf_token() }}"/>
+				<input type=password name="pass_old" placeholder="Old password"/>
+				<input type=password name="pass_new" placeholder="New password"/>
+				<input type=password name="pass_new_conf" placeholder="Confirm new password"/>
+				<button id="pass-change-submit" type=button class="green">Change</button>
+				<button id="pass-change-cancel" type=button class="yellow">Cancel</button>
+			</form>
+		</div>
+		<div>
+			<button id="pass-change-btn">Change</button>
+			<div id="pass-issue" class="issue-text"></div>
+			<div id="pass-spinner" class="spinner"></div>
+		</div>
+
+		<div class="grid-label">EMAIL</div>
+		<div>
+			<form id="email-form">
+				<!--This CSRF field is identical to the one in the password form.
+				Allows email form to also use CSRF protection-->
+				<input id="csrf" type=hidden name="csrf_token" value="{{ csrf_token() }}"/>
+				<input type=text name="email_new" placeholder="Add an email"/>
+				<button id="email-submit-btn" type=button class="green">Submit</button>
+				<button id="email-cancel-btn" type=button class="yellow">Cancel</button>
+			</form>
+			<div id="email-current" class="inline">[your email here]</div>
+			<span id="email-conf" class="green inline" title="Confirmed!">&#10003;</span>
+			<div id="email-new" class="yellow inline">[unconfirmed email here]</div>
+			<span id="email-unconf" class="yellow inline" title="Pending, confirmation email sent">&#9888;</span>
+		</div>
+		<div>
+			<button id="email-change-btn" type=button>Change</button>
+			<div id="email-issue" class="issue-text"></div>
+			<div id="email-spinner" class="spinner"></div>
+		</div>
+
+		<div class="grid-label">FUNBUX</div>
+		<div>Coming soon!</div>
+		<div></div>
+	</div>
+	<form>
+		<input id="csrf" type=hidden name="csrf_token" value="{{ csrf_token() }}"/>
+		<button id="logout-btn" type=button class="red logout-button">Logout</button>
+	</form>
+</div>
+</body>
+</html>
