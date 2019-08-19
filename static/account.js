@@ -217,9 +217,12 @@ window.onload = function() {
 			window.fetch('./update/email', {
 				method: 'put',
 				headers: {
+					'Content-type': 'application/json; charset=UTF-8',
 					'X-CSRFToken': csrfInput.value
 				},
-				body: emailInput.value
+				body: JSON.stringify({
+					email: emailInput.value
+				})
 			}).then(function(res) {
 				hideEmailForm();
 				emailCurrent.textContent = res.email_new;

@@ -250,9 +250,14 @@ def addEmail():
 		return forbidden()
 
 	user = login.user
-	email = request.get_data(as_text=True)
+	json = request.json
+	if json is None:
+		return 'Missing json data', 400
 
-	if EMAIL_VALIDATOR.match(email) is None:
+	email = json.get('email')
+
+	# TODO pull this validation out to utils, and make it return True/False
+	if not email or not EMAIL_VALIDATOR.match(email):
 		return 'Invalid email', 400
 
 	# Create an email verify code
