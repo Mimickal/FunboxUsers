@@ -230,7 +230,7 @@ window.onload = function() {
 					hide(emailConfSymbol);
 					hide(emailUnconfSymbol);
 
-					let data = await res.json();
+					let data = JSON.parse(text);
 
 					if (data.email) {
 						emailCurrent.textContent = data.email;
