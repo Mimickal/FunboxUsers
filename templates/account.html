@@ -6,6 +6,7 @@
 	<link rel="stylesheet" href="{{ url_for('static', filename='funbox.css') }}"/>
 	<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 	<script src="{{ url_for('static', filename='account.js') }}"></script>
+	<title>Funbox Account Overview</title>
 </head>
 <body>
 <div class="fb-pane">
@@ -45,6 +46,7 @@
 			</form>
 			<div id="email-current" class="inline">[your email here]</div>
 			<span id="email-conf" class="green inline" title="Confirmed!">&#10003;</span>
+			<br/>
 			<div id="email-new" class="yellow inline">[unconfirmed email here]</div>
 			<span id="email-unconf" class="yellow inline" title="Pending, confirmation email sent">&#9888;</span>
 		</div>

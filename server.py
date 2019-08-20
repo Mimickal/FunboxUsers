@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, session, jsonify
+from flask import Flask, request, render_template, session, jsonify, redirect
 from flask_wtf.csrf import CSRFProtect, CSRFError
 import scrypt
 import re
@@ -56,7 +56,11 @@ def handle_CSRFError(err):
 @app.route('/login', methods=['GET'])
 def getLogin():
 	csrf.protect()
-	return render_template('login.html');
+
+	if LoginCode.get_by_code(session.get('login')):
+		return redirect('/account')
+	else:
+		return render_template('login.html')
 
 
 @login_limit
@@ -122,7 +126,9 @@ def verifyLogin(username, password, cookie=False):
 			code = Code.get_by_code(code_str)
 			LoginCode.upsert(user=user, code=code_str)
 			session['login'] = code_str
-		return ok()
+			return redirect('/account')
+		else:
+			return ok()
 	else:
 		return forbidden()
 
@@ -144,13 +150,17 @@ def logout():
 	login.delete_instance()
 	Code.use_code(login_code)
 	session.pop('login')
-	return ok()
+	return redirect('/login')
 
 
 @app.route('/account', methods=['GET'])
 def getAccount():
 	csrf.protect()
-	return render_template('account.html');
+
+	if LoginCode.get_by_code(session.get('login')):
+		return render_template('account.html')
+	else:
+		return redirect('/login')
 
 
 @app.route('/user', methods=['GET'])

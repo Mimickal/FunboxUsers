@@ -25,6 +25,11 @@ def assertResponse(response, code, text, desc=None):
 	assert_that(response.status_code, equal_to(code), desc)
 	assert_that(response.get_data(as_text=True), equal_to(text), desc)
 
+def assertRedirect(response, url):
+	assert_that(response.status_code, equal_to(302))
+	got_url = re.search('href="([.\/\w]+)"', response.get_data(as_text=True)).group(1)
+	assert_that(got_url, equal_to(url))
+
 def getJsonFrom(response):
 	return json.loads(response.get_data(as_text=True))
 
@@ -58,7 +63,7 @@ def serverTests():
 			'username': test_name,
 			'password': test_pass
 		})
-		assertResponse(response, 200, 'Ok')
+		assertRedirect(response, '/account')
 
 	# TODO can we move this?
 	def enableRateLimiter(is_enabled):
@@ -86,11 +91,31 @@ def serverTests():
 		testutil.clearDatabase()
 		enableRateLimiter(False)
 
+	@describe('Login page')
+	def loginPage():
+
+		@beforeEach
+		def _beforeEach():
+			with app.session_transaction() as session:
+				session.clear()
+			testutil.clearDatabase()
+			createTestUser()
+
+		@it('Redirects to account page when already logged in')
+		def redirectToAccount():
+			getLoginSession()
+			response = app.get('/login')
+			assertRedirect(response, '/account')
+
+		#NOTE getting page HTML when not logged in is covered by getLoginSession
+
 	@describe('Login form')
 	def loginForm():
 
 		@beforeEach
 		def _beforeEach():
+			with app.session_transaction() as session:
+				session.clear()
 			testutil.clearDatabase()
 			createTestUser()
 			enableRateLimiter(False)
@@ -126,7 +151,7 @@ def serverTests():
 				'username': test_name,
 				'password': test_pass
 			})
-			assertResponse(response, 200, 'Ok')
+			assertRedirect(response, '/account')
 			with app.session_transaction() as session:
 				code = session.get('login', None)
 				assert_that(code, not_none())
@@ -198,7 +223,7 @@ def serverTests():
 				'username': test_name,
 				'password': test_pass,
 			})
-			assertResponse(res, 200, 'Ok')
+			assertRedirect(res, '/account')
 
 			with app.session_transaction() as session:
 				assert_that(session.get('login'), not_(equal_to(old_code)))
@@ -273,7 +298,7 @@ def serverTests():
 					'password': test_pass
 				}
 			)
-			assertResponse(response, 200, 'Ok')
+			assertRedirect(response, '/account')
 			with app.session_transaction() as session:
 				code = session.get('login', None)
 				assert_that(code, not_none())
@@ -372,7 +397,7 @@ def serverTests():
 				'password': test_pass
 			}
 			res = app.post('/login/json', headers=headers, json=json)
-			assertResponse(res, 200, 'Ok')
+			assertRedirect(res, '/account')
 
 			with app.session_transaction() as session:
 				assert_that(session.get('login'), not_(equal_to(old_code)))
@@ -423,13 +448,38 @@ def serverTests():
 
 			# Do logout
 			response = app.post('/logout', headers=csrf_header)
-			assertResponse(response, 200, 'Ok')
+			assertRedirect(response, '/login')
 
 			# Verify session information has been destroyed
 			with app.session_transaction() as session:
 				assert_that(session.get('login', None), none())
 			assert_that(LoginCode.get_by_user(test_user), none())
 			assert_that(Code.get_by_code(code, include_used=True).used_at, not_none())
+
+	@describe('Account page')
+	def accountPage():
+
+		@beforeEach
+		def _beforeEach():
+			with app.session_transaction() as session:
+				session.clear()
+			testutil.clearDatabase()
+			createTestUser()
+
+		@it('Get account page when logged in')
+		def getAccountHTML():
+			getLoginSession()
+			response = app.get('/account')
+			assert_that(response.status_code, equal_to(200))
+			assert_that(
+				response.get_data(as_text=True),
+				contains_string('<title>Funbox Account Overview</title>')
+			)
+
+		@it('Redirected to login page when not logged in')
+		def redirectToLogin():
+			response = app.get('/account')
+			assertRedirect(response, '/login')
 
 	@describe('Fetch logged in user')
 	def getAccountInfo():
