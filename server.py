@@ -8,7 +8,8 @@ import yaml
 from flask import Flask, jsonify, redirect, render_template, request, session
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_wtf.csrf import CSRFError, CSRFProtect,
+from flask_talisman import Talisman
+from flask_wtf.csrf import CSRFError, CSRFProtect
 from playhouse.shortcuts import model_to_dict
 import scrypt
 
@@ -34,6 +35,12 @@ app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 limiter = Limiter(app, key_func=get_remote_address)
 login_limit = limiter.shared_limit(config['rate_login'], scope='login')
 
+Talisman(app,
+	force_https=config['https']['enabled'],
+	session_cookie_http_only=True,
+	session_cookie_secure=config['https']['enabled'],
+	strict_transport_security=True
+)
 
 @app.errorhandler(404)
 @app.errorhandler(405)
@@ -327,5 +334,14 @@ def forbidden():
 
 
 if __name__ == '__main__':
-	app.run(host=config['host'], port=config['port'], debug=config['debug'])
+	context=None
+	if config['https']['enabled']:
+		context = (config['https']['cert_file'], config['https']['key_file'])
+
+	app.run(
+		host=config['host'],
+		port=config['port'],
+		debug=config['debug'],
+		ssl_context=context
+	)
 

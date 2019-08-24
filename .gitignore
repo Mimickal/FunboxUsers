@@ -4,3 +4,4 @@ __pycache__
 fbusers.db
 todo.txt
 *.key
+*.pem
