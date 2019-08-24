@@ -1,7 +1,8 @@
 import os
-import string
-from subprocess import Popen, PIPE
 from random import choice
+import string
+from subprocess import PIPE, Popen
+
 from peewee import IntegrityError
 
 from db import User, Code

@@ -1,12 +1,13 @@
-from pocha import describe, it, beforeEach, afterEach
-from hamcrest import *
 import os
 import shutil
-from peewee import fn
 
-import util
-from db import User, Code
+from hamcrest import *
+from peewee import fn
+from pocha import describe, it, beforeEach, afterEach
+
+from db import Code, User
 import testutil
+import util
 
 @describe('Util Tests')
 def utilTests():

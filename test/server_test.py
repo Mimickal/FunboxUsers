@@ -1,17 +1,18 @@
-from pocha import describe, it, before, beforeEach, afterEach
-from hamcrest import *
-from unittest.mock import patch
-import scrypt
 from base64 import b64encode
-import re
-import yaml
-from peewee import fn
 import json
+import re
+from unittest.mock import patch
+import yaml
 
-from server import app as server_app, limiter
-import util
+from hamcrest import *
+from peewee import fn
+from pocha import afterEach, before, beforeEach, describe, it
+import scrypt
+
 from db import User, Code, PendingEmail, LoginCode
+from server import app as server_app, limiter
 import testutil
+import util
 
 
 def authHeader(username, password):
