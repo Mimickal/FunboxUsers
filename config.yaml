@@ -20,9 +20,14 @@ log:
   keep: 10
   #format: '' # Not sure if this is even reasonable
 
-# Not implemented since we're proxying through Apache.
-# It might be fun to implement this in the future \_('_')_/
+# Currently just set for testing with https
+# TODO might not need this with Apache
+# NOTE In dev, toggling https when the browser has an active cookie can
+# cause the server to fail to give the browser a new cookie. The work-around is
+# to toggle https back to what it was before, reload, then clear the cookie.
+# Also, https can just be really frickin slow, for some reason.
+# Finally, enabling this will make *all* the server tests fail.
 https:
   enabled: false
-  cert_file: null
-  key_file: null
+  cert_file: 'cert.pem'
+  key_file: 'key.pem'

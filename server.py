@@ -36,9 +36,9 @@ limiter = Limiter(app, key_func=get_remote_address)
 login_limit = limiter.shared_limit(config['rate_login'], scope='login')
 
 Talisman(app,
-	force_https=False, # Apache should handle https for us, in theory
+	force_https=config['https']['enabled'],
 	session_cookie_http_only=True,
-	session_cookie_secure=False, # TODO can't enable this without https in dev
+	session_cookie_secure=config['https']['enabled'],
 	strict_transport_security=True
 )
 
@@ -334,5 +334,14 @@ def forbidden():
 
 
 if __name__ == '__main__':
-	app.run(host=config['host'], port=config['port'], debug=config['debug'])
+	context=None
+	if config['https']['enabled']:
+		context = (config['https']['cert_file'], config['https']['key_file'])
+
+	app.run(
+		host=config['host'],
+		port=config['port'],
+		debug=config['debug'],
+		ssl_context=context
+	)
 

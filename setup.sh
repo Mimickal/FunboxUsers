@@ -13,6 +13,8 @@ else
     then
         echo "Installing all the requirements for the tests."
         pip3 install -r test-requirements.txt
+        echo "Creating test SSL keys"
+        openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 365
     else
         echo "Add the command line option --test if you want to install the requirements for the tests."
     fi
