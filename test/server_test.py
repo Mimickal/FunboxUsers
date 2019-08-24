@@ -839,8 +839,8 @@ def serverTests():
 			assert_that(PendingEmail.get_by_code(code1), none())
 
 
-	@describe('Confirm Code')
-	def confirmCode():
+	@describe('Confirm email code')
+	def confirmEmailCode():
 
 		@beforeEach
 		def _beforeEach():
@@ -885,6 +885,7 @@ def serverTests():
 			user = User.get_by_id(test_user.id)
 			assert_that(user.email, equal_to(test_email))
 			assert_that(Code.get_by_code(test_code), none())
+			assert_that(PendingEmail.get_by_code(test_code), none())
 
 	@describe('Remove email from user')
 	def removeEmailFromUser():

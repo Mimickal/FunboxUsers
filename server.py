@@ -296,7 +296,7 @@ def confirmEmail(code):
 	user.email = pending.email
 	user.save()
 	Code.use_code(code)
-	pending.delete()
+	pending.delete_instance()
 
 	return ok()
 
