@@ -9,7 +9,7 @@ from flask import Flask, jsonify, redirect, render_template, request, session
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_talisman import Talisman
-from flask_wtf.csrf import CSRFError, CSRFProtect,
+from flask_wtf.csrf import CSRFError, CSRFProtect
 from playhouse.shortcuts import model_to_dict
 import scrypt
 
