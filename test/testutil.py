@@ -1,4 +1,4 @@
-from db import User, Code, PendingEmail, LoginCode
+from db import Code, LoginCode, PendingEmail, User
 
 def clearDatabase():
 	LoginCode.delete().execute()

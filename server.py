@@ -1,17 +1,18 @@
-from flask import Flask, request, render_template, session, jsonify, redirect
-from flask_wtf.csrf import CSRFProtect, CSRFError
-import scrypt
-import re
+import html
 from random import choice
+import re
 from string import ascii_letters, digits
+import socket
 import yaml
+
+from flask import Flask, jsonify, redirect, render_template, request, session
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFError, CSRFProtect,
 from playhouse.shortcuts import model_to_dict
-import socket
-import html
+import scrypt
 
-from db import User, Code, PendingEmail, LoginCode
+from db import Code, LoginCode, PendingEmail, User
 import util
 
 

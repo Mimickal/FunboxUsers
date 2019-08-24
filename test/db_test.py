@@ -1,13 +1,14 @@
-from pocha import describe, it, before, beforeEach
-from hamcrest import *
-import scrypt
-from time import sleep
 from datetime import datetime, timedelta
+from time import sleep
+
+from hamcrest import *
 from peewee import IntegrityError
 from playhouse.shortcuts import model_to_dict
+from pocha import before, beforeEach, describe, it
+import scrypt
 
 import testutil
-from db import User, Code, PendingEmail, LoginCode
+from db import Code, LoginCode, PendingEmail, User
 
 
 @describe('Database Tests')

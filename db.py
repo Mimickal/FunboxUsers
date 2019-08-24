@@ -1,6 +1,7 @@
-from peewee import *
 from datetime import datetime, timedelta
 from os import environ
+
+from peewee import *
 
 DB_NAME = environ.get('FB_USERS_DB', 'fbusers.db')
 db = SqliteDatabase(DB_NAME, pragmas={'foreign_keys': 1})
