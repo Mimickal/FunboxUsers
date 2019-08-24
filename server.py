@@ -8,6 +8,7 @@ import yaml
 from flask import Flask, jsonify, redirect, render_template, request, session
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFError, CSRFProtect,
 from playhouse.shortcuts import model_to_dict
 import scrypt
@@ -34,6 +35,12 @@ app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 limiter = Limiter(app, key_func=get_remote_address)
 login_limit = limiter.shared_limit(config['rate_login'], scope='login')
 
+Talisman(app,
+	force_https=False, # Apache should handle https for us, in theory
+	session_cookie_http_only=True,
+	session_cookie_secure=False, # TODO can't enable this without https in dev
+	strict_transport_security=True
+)
 
 @app.errorhandler(404)
 @app.errorhandler(405)

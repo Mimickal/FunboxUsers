@@ -1,6 +1,7 @@
 flask
 Flask-WTF
 flask-limiter
+flask-talisman
 peewee
 pysqlite3
 pyyaml
