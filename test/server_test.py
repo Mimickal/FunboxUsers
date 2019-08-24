@@ -747,7 +747,7 @@ def serverTests():
 			assertResponse(response, 400, 'Invalid email')
 
 		@it('Missing email')
-		def emailInvalid():
+		def emailMissing():
 			getLoginSession()
 			response = app.put('/update/email', headers=csrf_header, json={})
 			assertResponse(response, 400, 'Invalid email')
