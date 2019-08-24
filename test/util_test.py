@@ -3,7 +3,7 @@ import shutil
 
 from hamcrest import *
 from peewee import fn
-from pocha import describe, it, beforeEach, afterEach
+from pocha import afterEach, beforeEach, describe, it
 
 from db import Code, User
 import testutil
