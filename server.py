@@ -250,10 +250,18 @@ def addEmail():
 		return forbidden()
 
 	user = login.user
-	email = request.get_data(as_text=True)
+	json = request.json
+	if json is None:
+		return 'Missing json data', 400
 
-	if EMAIL_VALIDATOR.match(email) is None:
+	email = json.get('email')
+
+	# TODO pull this validation out to utils, and make it return True/False
+	if not email or not EMAIL_VALIDATOR.match(email):
 		return 'Invalid email', 400
+
+	if email == user.email:
+		return 'New email matches old email', 200
 
 	# Create an email verify code
 	code_str = util.makeUniqueCode(CODE_SIZE)
@@ -264,7 +272,10 @@ def addEmail():
 	util.sendEmail(email, NAME + ' Email Verification',
 		'Hello from ' + NAME + '! Use this link to verify your email: ' + link)
 
-	return ok()
+	return jsonify({
+		'email': user.email,
+		'email_pending': email
+	})
 
 
 @app.route('/update/email/confirm/<code>', methods=['GET'])

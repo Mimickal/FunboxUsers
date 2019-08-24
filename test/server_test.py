@@ -732,17 +732,39 @@ def serverTests():
 			response = app.delete('/update/email', headers=csrf_header)
 			assertResponse(response, 403, 'Forbidden')
 
+		@it('Invalid request data')
+		def requestDataInvalid():
+			getLoginSession()
+			response = app.put('/update/email', headers=csrf_header, data='a@a.a')
+			assertResponse(response, 400, 'Missing json data')
+
 		@it('Invalid email')
 		def emailInvalid():
 			getLoginSession()
-			response = app.put('/update/email', headers=csrf_header, data='bademail')
+			response = app.put('/update/email', headers=csrf_header, json={
+				'email': 'bademail'
+			})
+			assertResponse(response, 400, 'Invalid email')
+
+		@it('Missing email')
+		def emailMissing():
+			getLoginSession()
+			response = app.put('/update/email', headers=csrf_header, json={})
 			assertResponse(response, 400, 'Invalid email')
 
 		@it('Missing CSRF token')
 		def missingCSRF():
 			getLoginSession()
-			response = app.put('/update/email', data='a@a.a')
+			response = app.put('/update/email', json={ 'email': 'a@a.a'})
 			assertResponse(response, 400, 'Session expired. Reload and try again')
+
+		@it('New email matches old email')
+		def matchingEmail():
+			getLoginSession()
+			response = app.put('/update/email', headers=csrf_header, json={
+				'email': test_email
+			})
+			assertResponse(response, 200, 'New email matches old email')
 
 		def extractCodeFromEmail(body):
 			match = re.search(r'email\/confirm\/(\w{8})', body)
@@ -754,8 +776,14 @@ def serverTests():
 		def pendingEmailRecordsAded(mock_emailer):
 			getLoginSession()
 			email = 'new@email.com'
-			response = app.put('/update/email', headers=csrf_header, data=email)
-			assertResponse(response, 200, 'Ok')
+			response = app.put('/update/email', headers=csrf_header, json={
+				'email': email
+			})
+			assert_that(response.status_code, equal_to(200))
+			assert_that(getJsonFrom(response), equal_to({
+				'email': test_email,
+				'email_pending': email
+			}))
 
 			# Check email was sent with valid code
 			args = mock_emailer.call_args[0]
@@ -777,14 +805,26 @@ def serverTests():
 
 			# Add two pending emails
 			email1 = 'new@email.com'
-			response = app.put('/update/email', headers=csrf_header, data=email1)
-			assertResponse(response, 200, 'Ok')
+			response = app.put('/update/email', headers=csrf_header, json={
+				'email': email1
+			})
+			assert_that(response.status_code, equal_to(200))
+			assert_that(getJsonFrom(response), equal_to({
+				'email': test_email,
+				'email_pending': email1
+			}))
 			code1 = extractCodeFromEmail(mock_emailer.call_args[0][2])
 			pending1 = PendingEmail.get_by_code(code1)
 
 			email2 = 'updated@email.com'
-			response = app.put('/update/email', headers=csrf_header, data=email2)
-			assertResponse(response, 200, 'Ok')
+			response = app.put('/update/email', headers=csrf_header, json={
+				'email': email2
+			})
+			assert_that(response.status_code, equal_to(200))
+			assert_that(getJsonFrom(response), equal_to({
+				'email': test_email,
+				'email_pending': email2
+			}))
 			code2 = extractCodeFromEmail(mock_emailer.call_args[0][2])
 			pending2 = PendingEmail.get_by_code(code2)
 

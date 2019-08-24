@@ -217,22 +217,38 @@ window.onload = function() {
 			window.fetch('./update/email', {
 				method: 'put',
 				headers: {
+					'Content-type': 'application/json; charset=UTF-8',
 					'X-CSRFToken': csrfInput.value
 				},
-				body: emailInput.value
-			}).then(function(res) {
-				hideEmailForm();
-				emailCurrent.textContent = res.email_new;
+				body: JSON.stringify({
+					email: emailInput.value
+				})
+			}).then(async function(res) {
+				let text = await res.text();
+				if (res.ok && text !== 'New email matches old email') {
+					hideEmailForm();
+					hide(emailConfSymbol);
+					hide(emailUnconfSymbol);
 
-				// Both change symbols and override default display modes
-				hide(emailConfSymbol);
-				show(emailUnconfSymbol);
-				displayEmailConf = "none";
-				displayEmailUnconf = "block";
-			}).catch(function(err) {
-				enableEmailForm();
-				emailIssue.textContent = err;
-			});
+					let data = JSON.parse(text);
+
+					if (data.email) {
+						emailCurrent.textContent = data.email;
+						show(emailConfSymbol);
+					}
+					if (data.email_pending) {
+						emailNew.textContent = data.email_pending;
+						show(emailUnconfSymbol);
+					}
+
+					// Both change symbols and override default display modes
+					displayEmailConf = "none";
+					displayEmailUnconf = "block";
+				} else {
+					enableEmailForm();
+					emailIssue.textContent = text;
+				}
+			}).catch(console.error);
 		} else {
 			emailInput.setAttribute("class", "issue");
 			emailIssue.textContent = "Invalid email";

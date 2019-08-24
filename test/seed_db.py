@@ -9,7 +9,7 @@ from db import User
 
 username = 'vulpes'
 password = 'vulpes'
-salt = 'testsalt'
+salt = 'pickle'
 email = 'test@mail.com'
 
 User.create(
