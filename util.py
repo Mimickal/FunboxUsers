@@ -1,5 +1,6 @@
 import os
 from random import choice
+import re
 import string
 from subprocess import PIPE, Popen
 
@@ -9,6 +10,7 @@ from db import User, Code
 
 SECRET_SIZE = 32
 CODE_CHARS = string.ascii_letters + string.digits
+EMAIL_VALIDATOR = re.compile(r"\"?([-+a-zA-Z0-9.`?{}/|]+@\w+\.\w+)\"?")
 
 def getSecretKey(key):
 	'''Load a secret key, creating it if it doesn't exist'''
@@ -81,4 +83,11 @@ def sendEmail(email, subject, message):
 			'Mock sending email\nTo:      {:s}\nSubject: {:s}\nBody:\n {:s}' \
 			.format(email, subject, message + post)
 		)
+
+def isValidEmail(email):
+	'''Returns whether or not this is a valid email'''
+	global EMAIL_VALIDATOR
+	if not isinstance(email, str):
+		email = ''
+	return bool(EMAIL_VALIDATOR.match(email))
 

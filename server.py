@@ -17,7 +17,6 @@ from db import Code, LoginCode, PendingEmail, User
 import util
 
 
-EMAIL_VALIDATOR = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
 CODE_VALIDATOR = re.compile(r'^(\w{8})$')
 CODE_SIZE = 8
 LOGIN_COOKIE_SIZE = 16
@@ -244,7 +243,6 @@ def changePassword():
 
 @app.route('/update/email', methods=['PUT'])
 def addEmail():
-	global EMAIL_VALIDATOR
 	global CODE_SIZE
 
 	csrf.protect()
@@ -264,8 +262,7 @@ def addEmail():
 
 	email = json.get('email')
 
-	# TODO pull this validation out to utils, and make it return True/False
-	if not email or not EMAIL_VALIDATOR.match(email):
+	if not util.isValidEmail(email):
 		return 'Invalid email', 400
 
 	if email == user.email:

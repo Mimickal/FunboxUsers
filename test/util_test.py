@@ -133,3 +133,31 @@ def utilTests():
 		def validPassAccepted():
 			assert_that(util.isValidPassword('mypasshere'), equal_to(True))
 
+	@describe('isValidEmail')
+	def test_isValidEmail():
+
+		@it('None not allowed')
+		def noneNotAllowed():
+			assert_that(util.isValidEmail(None), equal_to(False))
+
+		@it('Empty string not allowed')
+		def emptyNotAllowed():
+			assert_that(util.isValidEmail(''), equal_to(False))
+
+		@it('Non-string not allowed')
+		def nonStringNotAllowed():
+			assert_that(util.isValidEmail({'email': 'a@a.a'}), equal_to(False))
+			assert_that(util.isValidEmail(['my@email.com']), equal_to(False))
+			assert_that(util.isValidEmail(123), equal_to(False))
+
+		@it('Valid email accepted')
+		def validEmailAccepted():
+			valid_emails = [
+				'my@email.com',
+				'p123@hello.us.to',
+				'my.dev@a.b.c',
+				'a+b-c{d.f/g|h}@this.is.dumb.com'
+			]
+			for email in valid_emails:
+				assert_that(util.isValidEmail(email), equal_to(True), email)
+
