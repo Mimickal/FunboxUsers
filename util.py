@@ -3,6 +3,7 @@ from random import choice
 import re
 import string
 from subprocess import PIPE, Popen
+import yaml
 
 from peewee import IntegrityError
 import scrypt
@@ -95,4 +96,9 @@ def isValidEmail(email):
 def hashPassword(password, salt):
 	'''Hashes the given password using the given salt'''
 	return scrypt.hash(password, salt)
+
+def loadYaml(yaml_file):
+	'''Safely load the given YAML file into a nested Python dict'''
+	with open(yaml_file) as fileobj:
+		return yaml.safe_load(fileobj)
 

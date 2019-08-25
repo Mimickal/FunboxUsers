@@ -2,7 +2,6 @@ from base64 import b64encode
 import json
 import re
 from unittest.mock import patch
-import yaml
 
 from hamcrest import *
 from peewee import fn
@@ -36,7 +35,7 @@ def getJsonFrom(response):
 @describe('Server Tests')
 def serverTests():
 
-	config = yaml.safe_load(open('config.yaml'))
+	config = util.loadYaml('config.yaml')
 	rate_login = int(re.search('(\d+)', config['rate_login']).group(1))
 
 	server_app.config['TESTING'] = True

@@ -3,7 +3,6 @@ from random import choice
 import re
 from string import ascii_letters, digits
 import socket
-import yaml
 
 from flask import Flask, jsonify, redirect, render_template, request, session
 from flask_limiter import Limiter
@@ -25,7 +24,7 @@ NAME = 'Funbox'
 app = Flask('Funbox Accounts')
 app.secret_key = util.getSecretKey('secret.key')
 
-config = yaml.safe_load(open('config.yaml'))
+config = util.loadYaml('config.yaml')
 
 csrf = CSRFProtect(app)
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False

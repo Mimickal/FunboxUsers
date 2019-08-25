@@ -1,5 +1,7 @@
 import os
 import shutil
+from tempfile import NamedTemporaryFile
+from yaml.parser import ParserError
 
 from hamcrest import *
 from peewee import fn
@@ -160,4 +162,29 @@ def utilTests():
 			]
 			for email in valid_emails:
 				assert_that(util.isValidEmail(email), equal_to(True), email)
+
+	@describe('loadYaml')
+	def test_loadYaml():
+
+		@it('Non-existing file')
+		def nonExistingFile():
+			assert_that(
+				calling(util.loadYaml).with_args('badfile'),
+				raises(FileNotFoundError, "No such file or directory: 'badfile'")
+			)
+
+		@it('Invalid yaml file')
+		def invalidYaml():
+			with NamedTemporaryFile() as fp:
+				fp.write(b'- : I am not valid YAML')
+				fp.seek(0)
+				assert_that(
+					calling(util.loadYaml).with_args(fp.name),
+					raises(ParserError, 'while parsing a block mapping')
+				)
+
+		@it('Valid yaml loads successfully')
+		def validYaml():
+			yaml = util.loadYaml('config.yaml')
+			assert_that(yaml, instance_of(dict))
 
