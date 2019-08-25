@@ -11,7 +11,6 @@ from flask_limiter.util import get_remote_address
 from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFError, CSRFProtect
 from playhouse.shortcuts import model_to_dict
-import scrypt
 
 from db import Code, LoginCode, PendingEmail, User
 import util
@@ -125,7 +124,7 @@ def verifyLogin(username, password, cookie=False):
 	if user is None:
 		return forbidden()
 
-	pw_hash = scrypt.hash(password, user.pass_salt)
+	pw_hash = util.hashPassword(password, user.pass_salt)
 
 	if pw_hash == user.pass_hash:
 		if cookie:
@@ -220,14 +219,14 @@ def changePassword():
 		return 'Invalid password', 400
 
 	user = login.user
-	old_hash = scrypt.hash(old, user.pass_salt)
+	old_hash = util.hashPassword(old, user.pass_salt)
 	if old_hash != user.pass_hash:
 		return 'Old password incorrect', 400
 
 	if new1 != new2:
 		return 'Passwords do not match', 400
 
-	new_hash = scrypt.hash(new1, user.pass_salt)
+	new_hash = util.hashPassword(new1, user.pass_salt)
 	user.pass_hash = new_hash
 	user.save()
 

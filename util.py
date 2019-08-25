@@ -5,6 +5,7 @@ import string
 from subprocess import PIPE, Popen
 
 from peewee import IntegrityError
+import scrypt
 
 from db import User, Code
 
@@ -90,4 +91,8 @@ def isValidEmail(email):
 	if not isinstance(email, str):
 		email = ''
 	return bool(EMAIL_VALIDATOR.match(email))
+
+def hashPassword(password, salt):
+	'''Hashes the given password using the given salt'''
+	return scrypt.hash(password, salt)
 

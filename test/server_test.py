@@ -7,7 +7,6 @@ import yaml
 from hamcrest import *
 from peewee import fn
 from pocha import afterEach, before, beforeEach, describe, it
-import scrypt
 
 from db import User, Code, PendingEmail, LoginCode
 from server import app as server_app, limiter
@@ -47,7 +46,7 @@ def serverTests():
 	test_code = 'Test1234'
 	test_email = 'test@email.com'
 	test_salt = 'saltything'
-	test_hash = scrypt.hash(test_pass, test_salt)
+	test_hash = util.hashPassword(test_pass, test_salt)
 
 	test_user = None
 
@@ -683,7 +682,7 @@ def serverTests():
 			})
 			assertResponse(response, 200, 'Ok')
 
-			new_hash = scrypt.hash(new_pass, test_salt)
+			new_hash = util.hashPassword(new_pass, test_salt)
 			user = User.get_by_name(test_name)
 			assert_that(user.pass_hash, equal_to(new_hash))
 
