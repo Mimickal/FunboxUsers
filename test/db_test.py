@@ -6,8 +6,8 @@ from peewee import IntegrityError
 from playhouse.shortcuts import model_to_dict
 from pocha import before, beforeEach, describe, it
 
-import testutil
 from db import Code, LoginCode, PendingEmail, User
+import testutil
 import util
 
 
