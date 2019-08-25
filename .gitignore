@@ -5,3 +5,6 @@ fbusers.db
 todo.txt
 *.key
 *.pem
+.coverage
+htmlcov
+*,cover
