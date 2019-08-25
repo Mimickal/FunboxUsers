@@ -1,27 +1,11 @@
-# Depricated, and will not work with our new database accessing method.
-from random import choice
-from string import ascii_letters, digits, printable
+from argparse import ArgumentParser
+from sys import stderr
+
+from peewee import IntegrityError
 import scrypt
-from sqlite3 import IntegrityError
 
-import db
-
-
-def randomStr(characters, length):
-	return ''.join(choice(characters) for _ in range(length))
-
-def createUser(username):
-	temp_pass = randomStr(ascii_letters + digits, 12)
-	pw_salt = randomStr(printable, 10)
-	pw_hash = memoryview(scrypt.hash(temp_pass, pw_salt))
-
-	db.addUser({
-		'name': username,
-		'pass_hash': pw_hash,
-		'pass_salt': pw_salt
-	})
-	return temp_pass
-
+from db import User
+import util
 
 if __name__ == '__main__':
 	from argparse import ArgumentParser
@@ -31,9 +15,20 @@ if __name__ == '__main__':
 	parser.add_argument('username')
 	args = parser.parse_args()
 
+	name = args.username
+	pw = util.makeCode(12)
+	pw_salt = util.makeCode(8)
+	pw_hash = memoryview(scrypt.hash(pw, pw_salt))
+
 	try:
-		new_pass = createUser(args.username)
-		print(new_pass)
-	except IntegrityError:
-		print('Username already exists: ' + args.username, file=stderr)
+		User.create(
+			name      = name,
+			pass_hash = pw_hash,
+			pass_salt = pw_salt
+		)
+		print('User [%s] created with temp password [%s]' % (name, pw))
+	except IntegrityError as e:
+		print('Error adding user [%s]: %s' % (name, e), file=stderr)
+else:
+	raise Exception('This is not a module, do not import this')
 
