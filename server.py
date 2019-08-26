@@ -3,7 +3,6 @@ from random import choice
 import re
 from string import ascii_letters, digits
 import socket
-import yaml
 
 from flask import Flask, jsonify, redirect, render_template, request, session
 from flask_limiter import Limiter
@@ -11,13 +10,11 @@ from flask_limiter.util import get_remote_address
 from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFError, CSRFProtect
 from playhouse.shortcuts import model_to_dict
-import scrypt
 
 from db import Code, LoginCode, PendingEmail, User
 import util
 
 
-EMAIL_VALIDATOR = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
 CODE_VALIDATOR = re.compile(r'^(\w{8})$')
 CODE_SIZE = 8
 LOGIN_COOKIE_SIZE = 16
@@ -27,7 +24,7 @@ NAME = 'Funbox'
 app = Flask('Funbox Accounts')
 app.secret_key = util.getSecretKey('secret.key')
 
-config = yaml.safe_load(open('config.yaml'))
+config = util.loadYaml('config.yaml')
 
 csrf = CSRFProtect(app)
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False
@@ -126,7 +123,7 @@ def verifyLogin(username, password, cookie=False):
 	if user is None:
 		return forbidden()
 
-	pw_hash = scrypt.hash(password, user.pass_salt)
+	pw_hash = util.hashPassword(password, user.pass_salt)
 
 	if pw_hash == user.pass_hash:
 		if cookie:
@@ -221,14 +218,14 @@ def changePassword():
 		return 'Invalid password', 400
 
 	user = login.user
-	old_hash = scrypt.hash(old, user.pass_salt)
+	old_hash = util.hashPassword(old, user.pass_salt)
 	if old_hash != user.pass_hash:
 		return 'Old password incorrect', 400
 
 	if new1 != new2:
 		return 'Passwords do not match', 400
 
-	new_hash = scrypt.hash(new1, user.pass_salt)
+	new_hash = util.hashPassword(new1, user.pass_salt)
 	user.pass_hash = new_hash
 	user.save()
 
@@ -244,7 +241,6 @@ def changePassword():
 
 @app.route('/update/email', methods=['PUT'])
 def addEmail():
-	global EMAIL_VALIDATOR
 	global CODE_SIZE
 
 	csrf.protect()
@@ -264,8 +260,7 @@ def addEmail():
 
 	email = json.get('email')
 
-	# TODO pull this validation out to utils, and make it return True/False
-	if not email or not EMAIL_VALIDATOR.match(email):
+	if not util.isValidEmail(email):
 		return 'Invalid email', 400
 
 	if email == user.email:

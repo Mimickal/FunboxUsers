@@ -2,7 +2,6 @@ from argparse import ArgumentParser
 from sys import stderr
 
 from peewee import IntegrityError
-import scrypt
 
 from db import User
 import util
@@ -18,7 +17,7 @@ if __name__ == '__main__':
 	name = args.username
 	pw = util.makeCode(12)
 	pw_salt = util.makeCode(8)
-	pw_hash = memoryview(scrypt.hash(pw, pw_salt))
+	pw_hash = memoryview(util.hashPassword(pw, pw_salt))
 
 	try:
 		User.create(

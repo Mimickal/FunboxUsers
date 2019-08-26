@@ -5,10 +5,10 @@ from hamcrest import *
 from peewee import IntegrityError
 from playhouse.shortcuts import model_to_dict
 from pocha import before, beforeEach, describe, it
-import scrypt
 
-import testutil
 from db import Code, LoginCode, PendingEmail, User
+import testutil
+import util
 
 
 @describe('Database Tests')
@@ -16,7 +16,7 @@ def databaseTests():
 
 	test_name = 'TestUser'
 	test_salt = 'testsalt'
-	test_hash = scrypt.hash('testpass', test_salt)
+	test_hash = util.hashPassword('testpass', test_salt)
 	test_email = 'test@email.com'
 	test_code1 = 'abcd'
 	test_code2 = '1234'

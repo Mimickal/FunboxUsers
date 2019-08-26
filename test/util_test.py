@@ -1,5 +1,7 @@
 import os
 import shutil
+from tempfile import NamedTemporaryFile
+from yaml.parser import ParserError
 
 from hamcrest import *
 from peewee import fn
@@ -132,4 +134,57 @@ def utilTests():
 		@it('Valid password accepted')
 		def validPassAccepted():
 			assert_that(util.isValidPassword('mypasshere'), equal_to(True))
+
+	@describe('isValidEmail')
+	def test_isValidEmail():
+
+		@it('None not allowed')
+		def noneNotAllowed():
+			assert_that(util.isValidEmail(None), equal_to(False))
+
+		@it('Empty string not allowed')
+		def emptyNotAllowed():
+			assert_that(util.isValidEmail(''), equal_to(False))
+
+		@it('Non-string not allowed')
+		def nonStringNotAllowed():
+			assert_that(util.isValidEmail({'email': 'a@a.a'}), equal_to(False))
+			assert_that(util.isValidEmail(['my@email.com']), equal_to(False))
+			assert_that(util.isValidEmail(123), equal_to(False))
+
+		@it('Valid email accepted')
+		def validEmailAccepted():
+			valid_emails = [
+				'my@email.com',
+				'p123@hello.us.to',
+				'my.dev@a.b.c',
+				'a+b-c{d.f/g|h}@this.is.dumb.com'
+			]
+			for email in valid_emails:
+				assert_that(util.isValidEmail(email), equal_to(True), email)
+
+	@describe('loadYaml')
+	def test_loadYaml():
+
+		@it('Non-existing file')
+		def nonExistingFile():
+			assert_that(
+				calling(util.loadYaml).with_args('badfile'),
+				raises(FileNotFoundError, "No such file or directory: 'badfile'")
+			)
+
+		@it('Invalid yaml file')
+		def invalidYaml():
+			with NamedTemporaryFile() as fp:
+				fp.write(b'- : I am not valid YAML')
+				fp.seek(0)
+				assert_that(
+					calling(util.loadYaml).with_args(fp.name),
+					raises(ParserError, 'while parsing a block mapping')
+				)
+
+		@it('Valid yaml loads successfully')
+		def validYaml():
+			yaml = util.loadYaml('config.yaml')
+			assert_that(yaml, instance_of(dict))
 

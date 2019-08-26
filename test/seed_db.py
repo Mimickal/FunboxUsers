@@ -1,11 +1,10 @@
 #!/usr/bin/python3
-import scrypt
-
 # Let us import db from the project root
 import sys
 sys.path.append('./')
 
 from db import User
+import util
 
 username = 'vulpes'
 password = 'vulpes'
@@ -14,7 +13,7 @@ email = 'test@mail.com'
 
 User.create(
 	name      = username,
-	pass_hash = scrypt.hash(password, salt),
+	pass_hash = util.hashPassword(password, salt),
 	pass_salt = salt,
 	email     = email
 )
