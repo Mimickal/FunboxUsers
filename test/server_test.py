@@ -837,6 +837,45 @@ def serverTests():
 			# The old confirm code should also no longer be valid
 			assert_that(PendingEmail.get_by_code(code1), none())
 
+		'''
+		@it('Old Email is notified')
+		@patch('util.sendEmail')
+		def oldEmailNotified(mock_emailer):
+			getLoginSession()
+
+			email = 'new@email.com'
+			response = app.put('/update/email', headers=csrf_header, json={
+				'email': email
+			})
+
+			assert_that(
+				mock_emailer.caller_args[1][0],
+				equal_to(test_user.email)
+			)
+			assert_that(
+				mock_emailer.caller_args[1][1],
+				contains_string('Email Change Warning')
+			)
+			assert_that(
+				mock_emailer.caller_args[1][2],
+				contains_string('Email address change')
+			)
+
+		@it('No warning sent if there is no old email')
+		@patch('util.sendEmail')
+		def noOldEmailNotif(mock_emailer):
+			getLoginSession()
+
+			test_user.email = None
+			test_user.save()
+
+			email = 'new@email.com'
+			response = app.put('/update/email', headers=csrf_header, json={
+				'email': email
+			})
+
+			assert_that(mock_emailer.caller_args, none())
+		'''
 
 	@describe('Confirm email code')
 	def confirmEmailCode():
@@ -951,4 +990,3 @@ def serverTests():
 		def badEndpoint():
 			response = app.get('/bad/endpoint')
 			assertResponse(response, 403, 'Forbidden')
-

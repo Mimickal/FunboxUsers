@@ -271,9 +271,18 @@ def addEmail():
 	code = Code.get_by_code(code_str)
 	PendingEmail.upsert(code=code, user=user, email=email)
 
+	# If old email exists send a warning to that one.
+	if user.email:
+		util.sendEmail(user.email, NAME + ' Email Change Warning',
+			'Hello from ' + NAME + '! This Email is to warn you that an Email '
+			'address change has been requested from your account control panel. '
+			'Live in fear! Unless, that was your doing of course.')
+
 	link = socket.getfqdn() + 'update/email/confirm/' + code
 	util.sendEmail(email, NAME + ' Email Verification',
 		'Hello from ' + NAME + '! Use this link to verify your email: ' + link)
+
+
 
 	return jsonify({
 		'email': user.email,
@@ -339,4 +348,3 @@ if __name__ == '__main__':
 		debug=config['debug'],
 		ssl_context=context
 	)
-
