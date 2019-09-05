@@ -305,6 +305,12 @@ def confirmEmail(code):
 	if user is None:
 		return forbidden()
 
+	# If old email exists send a warning to that one.
+	if user.email:
+		util.sendEmail(user.email, NAME + ' Email Change Warning (Change is Final)',
+			'Hello from ' + NAME + '! Saw that warning email from earlier?'
+			'That email change has just been confirmed. Bye :\'(')
+
 	user.email = pending.email
 	user.save()
 	Code.use_code(code)

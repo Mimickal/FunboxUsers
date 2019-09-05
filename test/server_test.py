@@ -838,6 +838,8 @@ def serverTests():
 			assert_that(PendingEmail.get_by_code(code1), none())
 
 		'''
+		# The mock implementation can only pass the args of the last call.
+		# Like ok, fuck you too.
 		@it('Old Email is notified')
 		@patch('util.sendEmail')
 		def oldEmailNotified(mock_emailer):
