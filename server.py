@@ -228,7 +228,6 @@ def changePassword():
 
 	if user.email:
 		service_name = config['naming']['service']
-		print(service_name)
 		util.sendEmail(user.email, '%s Password Change Notice' % (service_name),
 			'Hello from %s! The password for %s was just changed. '
 			'If this was not your doing then now is the time to scream.'
