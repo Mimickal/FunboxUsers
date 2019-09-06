@@ -11,7 +11,7 @@ from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFError, CSRFProtect
 from playhouse.shortcuts import model_to_dict
 
-from db import Code, LoginCode, PendingEmail, User
+from db import Code, LoginCode, PasswordReset, PendingEmail, User
 import util
 
 
@@ -31,6 +31,8 @@ app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 
 limiter = Limiter(app, key_func=get_remote_address)
 login_limit = limiter.shared_limit(config['rate_login'], scope='login')
+reset_limit = limiter.shared_limit(config['rate_reset'], scope='reset')
+
 
 Talisman(app,
 	force_https=config['https']['enabled'],
@@ -237,6 +239,29 @@ def changePassword():
 			% (html.escape(user.name)))
 
 	return ok()
+
+
+@reset_limit
+@app.route('/update/password/reset/<username>', methods=['POST'])
+def triggerPasswordChange(username):
+	user = User.get_by_name(username)
+
+	if user and user.email:
+		code_str = util.makeUniqueCode(CODE_SIZE)
+		code = Code.get_by_code(code_str)
+		PasswordReset.create(user=user, code=code)
+
+		link = socket.getfqdn() + 'update/password/reset/' + code
+		util.sendEmail(user.email, NAME + ' Password Reset',
+			'Hello from ' + NAME + '!\n'
+			'A password reset was requested for the account attached to this '
+			'email. If you requested this, use this link: ' + link + '\n\n'
+			'If you didn\'t request this, please ignore this email.'
+		)
+
+	# Always return this even if the user doesn't exist or have an email.
+	# Helps prevent sussing out a list of users.
+	return 'Reset email sent', 200
 
 
 @app.route('/update/email', methods=['PUT'])

@@ -114,6 +114,9 @@ class PendingEmail(CodePivot):
 class LoginCode(CodePivot):
 	pass
 
+class PasswordReset(CodePivot):
+	pass
+
 db.connect()
-db.create_tables([User, Code, PendingEmail, LoginCode])
+db.create_tables([Code, LoginCode, PasswordReset, PendingEmail, User])
 

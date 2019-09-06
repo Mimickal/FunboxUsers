@@ -7,7 +7,7 @@ from hamcrest import *
 from peewee import fn
 from pocha import afterEach, before, beforeEach, describe, it
 
-from db import User, Code, PendingEmail, LoginCode
+from db import User, Code, PasswordReset, PendingEmail, LoginCode
 from server import app as server_app, limiter
 import testutil
 import util
@@ -553,6 +553,70 @@ def serverTests():
 		#@it('accessed_at is near now')
 		# TODO this^ when accessed_at is implemented.
 		# Probably check that accessed_at != created and updated
+
+	@describe('Trigger Password Reset')
+	def triggerPasswordReset():
+
+		@beforeEach
+		def _beforeEach():
+			testutil.clearDatabase()
+			createTestUser()
+
+		@it('Non-existing User')
+		@patch('util.sendEmail')
+		def nonexistingUser(mock_emailer):
+			response = app.post('/update/password/reset/bad_user')
+			assertResponse(response, 200, 'Reset email sent')
+			assert_that(mock_emailer.call_args, none())
+			assert_that(PasswordReset.get_by_user(test_user), none())
+
+		@it('User without email')
+		@patch('util.sendEmail')
+		def userWithoutEmail(mock_emailer):
+			test_user.email = None
+			test_user.save()
+
+			response = app.post('/update/password/reset/' + test_name)
+			assertResponse(response, 200, 'Reset email sent')
+			assert_that(mock_emailer.call_args, none())
+			assert_that(PasswordReset.get_by_user(test_user), none())
+
+		@it('User without confirmed email')
+		@patch('util.sendEmail')
+		def userWithUnconfEmail(mock_emailer):
+			test_user.email = None
+			test_user.save()
+			Code.create(code=test_code)
+			PendingEmail.create(
+				user = test_user,
+				code = test_code,
+				email = 'whatever@email.com'
+			)
+
+			response = app.post('/update/password/reset/' + test_name)
+			assertResponse(response, 200, 'Reset email sent')
+			assert_that(mock_emailer.call_args, none())
+			assert_that(PasswordReset.get_by_user(test_user), none())
+
+		@it('Reset email sent to user with email')
+		@patch('util.sendEmail')
+		def resetEmailSent(mock_emailer):
+			Code.create(code=test_code)
+			PendingEmail.create(
+				user = test_user,
+				code = test_code,
+				email = 'whatever@email.com'
+			)
+
+			response = app.post('/update/password/reset/' + test_name)
+			assertResponse(response, 200, 'Reset email sent')
+			assert_that(PasswordReset.get_by_user(test_user), not_none())
+
+			args = mock_emailer.call_args[0]
+			assert_that(args[0], equal_to(test_email))
+			assert_that(args[1], equal_to('Funbox Password Reset'))
+			assert_that(args[2], contains_string('use this link'))
+			assert_that(args[2], contains_string('update/password/reset/'))
 
 	@describe('Change password')
 	def changePassword():
