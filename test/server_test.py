@@ -37,6 +37,7 @@ def serverTests():
 
 	config = util.loadYaml('config.yaml')
 	rate_login = int(re.search('(\d+)', config['rate_login']).group(1))
+	rate_reset = int(re.search('(\d+)', config['rate_reset']).group(1))
 
 	server_app.config['TESTING'] = True
 	app = server_app.test_client()
@@ -561,6 +562,11 @@ def serverTests():
 		def _beforeEach():
 			testutil.clearDatabase()
 			createTestUser()
+			enableRateLimiter(False)
+
+		@afterEach
+		def _afterEach():
+			enableRateLimiter(False)
 
 		@it('Non-existing User')
 		@patch('util.sendEmail')
@@ -617,6 +623,15 @@ def serverTests():
 			assert_that(args[1], equal_to('Funbox Password Reset'))
 			assert_that(args[2], contains_string('use this link'))
 			assert_that(args[2], contains_string('update/password/reset/'))
+
+		@it('Hitting rate limit')
+		def hittingRateLimit():
+			enableRateLimiter(True)
+			for _ in range(rate_reset):
+				response = app.post('/update/password/reset/bad_name')
+				assertResponse(response, 200, 'Reset email sent')
+			response = app.post('/update/password/reset/bad_name')
+			assertResponse(response, 429, 'Too many requests')
 
 	@describe('Change password')
 	def changePassword():
