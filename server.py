@@ -32,6 +32,7 @@ app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 limiter = Limiter(app, key_func=get_remote_address)
 login_limit = limiter.shared_limit(config['rate_login'], scope='login')
 reset_limit = limiter.shared_limit(config['rate_reset'], scope='reset')
+confirm_limit = limiter.shared_limit(config['rate_confirm'], scope='confirm')
 
 
 Talisman(app,
@@ -262,6 +263,36 @@ def triggerPasswordChange(username):
 	# Always return this even if the user doesn't exist or have an email.
 	# Helps prevent sussing out a list of users.
 	return 'Reset email sent', 200
+
+
+@confirm_limit
+@app.route('/update/password/reset', methods=['PUT'])
+def confirmPasswordChange():
+	json = request.json
+	if json is None:
+		return 'Missing json data', 400
+
+	code = json.get('reset_code')
+	password_reset = PasswordReset.get_by_code(code)
+	if not password_reset:
+		return forbidden()
+
+	new1 = json.get('pass_new')
+	new2 = json.get('pass_new_conf')
+
+	if not util.isValidPassword(new1) or not util.isValidPassword(new2):
+		return 'Invalid password', 400
+
+	if new1 != new2:
+		return 'Passwords do not match', 400
+
+	user = password_reset.user
+	user.pass_hash = util.hashPassword(new1, user.pass_salt)
+	user.save()
+	Code.use_code(code)
+	password_reset.delete_instance()
+
+	return ok()
 
 
 @app.route('/update/email', methods=['PUT'])
