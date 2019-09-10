@@ -12,6 +12,7 @@ debug: false
 # See https://flask-limiter.readthedocs.io/en/stable/#ratelimit-string
 rate_login: '10/hour;100/day'
 rate_reset: '10/day'
+rate_confirm: '6/hour;10/day'
 
 # Not yet implemented
 log:

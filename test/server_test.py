@@ -38,6 +38,7 @@ def serverTests():
 	config = util.loadYaml('config.yaml')
 	rate_login = int(re.search('(\d+)', config['rate_login']).group(1))
 	rate_reset = int(re.search('(\d+)', config['rate_reset']).group(1))
+	rate_confirm = int(re.search('(\d+)', config['rate_confirm']).group(1))
 
 	server_app.config['TESTING'] = True
 	app = server_app.test_client()
@@ -632,6 +633,94 @@ def serverTests():
 				assertResponse(response, 200, 'Reset email sent')
 			response = app.post('/update/password/reset/bad_name')
 			assertResponse(response, 429, 'Too many requests')
+
+	@describe('Confirm password reset')
+	def confirmPasswordReset():
+
+		@beforeEach
+		def _beforeEach():
+			testutil.clearDatabase()
+			enableRateLimiter(False)
+			user = createTestUser()
+			Code.create(code=test_code)
+			PasswordReset.create(user=user, code=test_code)
+
+		@it('Missing JSON data')
+		def missingJSONData():
+			response = app.put('/update/password/reset', data={})
+			assertResponse(response, 400, 'Missing json data')
+
+		@it('Incorrect reset code')
+		def incorrectResetCode():
+			response = app.put('/update/password/reset', json={
+				'reset_code': 'bad code',
+				'pass_new': test_pass,
+				'pass_new_conf': test_pass
+			})
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Missing/Empty/Invalid passwords')
+		def invalidPasswords():
+			combos = (
+				(None        , 'new pass'  ),
+				('new pass'  , None        ),
+				(''          , 'new pass'  ),
+				('new pass'  , ''          ),
+				(['new pass'], 'new pass'  ),
+				('new pass'  , ['new pass']),
+			)
+			for combo in combos:
+				response = app.put('/update/password/reset', json={
+					'reset_code': test_code,
+					'pass_new': combo[0],
+					'pass_new_conf': combo[1]
+				})
+				assertResponse(response, 400, 'Invalid password')
+
+		@it('Mismatched password')
+		def mismatchedPassword():
+			response = app.put('/update/password/reset', json={
+				'reset_code': test_code,
+				'pass_new': 'new pass',
+				'pass_new_conf': 'I do not match'
+			})
+			assertResponse(response, 400, 'Passwords do not match')
+
+		@it('Hitting rate limit')
+		def hittingRateLimit():
+			enableRateLimiter(True)
+			json = {
+				'reset_code': 'bad code',
+				'pass_new': 'new pass',
+				'pass_new_conf': 'new pass'
+			}
+			for _ in range(rate_confirm):
+				response = app.put('/update/password/reset', json=json)
+				assertResponse(response, 403, 'Forbidden')
+			response = app.put('/update/password/reset', json=json)
+			assertResponse(response, 429, 'Too many requests')
+
+		@it('Password successfully reset')
+		def successfulPasswordReset():
+			new_pass = 'my shiny new password'
+			response = app.put('/update/password/reset', json={
+				'reset_code': test_code,
+				'pass_new': new_pass,
+				'pass_new_conf': new_pass
+			})
+			assertResponse(response, 200, 'Ok')
+
+			user = User.get_by_name(test_name)
+			assert_that(
+				util.hashPassword(new_pass, user.pass_salt),
+				equal_to(user.pass_hash)
+			)
+
+			assert_that(
+				Code.get_by_code(test_code, include_used=True).used_at,
+				not_none()
+			)
+			assert_that(PasswordReset.get_by_code(test_code), none())
 
 	@describe('Change password')
 	def changePassword():
