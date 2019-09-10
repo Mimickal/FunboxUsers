@@ -20,7 +20,9 @@ CODE_VALIDATOR = re.compile(r'^(\w{8})$')
 CODE_SIZE = 8
 LOGIN_COOKIE_SIZE = 16
 
-app = Flask(config['naming']['account_service'])
+NAME = config['service_name']
+
+app = Flask(NAME)
 app.secret_key = util.getSecretKey('secret.key')
 
 csrf = CSRFProtect(app)
@@ -227,11 +229,10 @@ def changePassword():
 	user.save()
 
 	if user.email:
-		service_name = config['naming']['service']
-		util.sendEmail(user.email, '%s Password Change Notice' % (service_name),
+		util.sendEmail(user.email, '%s Password Change Notice' % (NAME),
 			'Hello from %s! The password for %s was just changed. '
 			'If this was not your doing then now is the time to scream.'
-			% (service_name, html.escape(user.name)))
+			% (NAME, html.escape(user.name)))
 
 	return ok()
 
@@ -269,10 +270,9 @@ def addEmail():
 	PendingEmail.upsert(code=code, user=user, email=email)
 
 	link = socket.getfqdn() + 'update/email/confirm/' + code
-	service_name = config['naming']['service']
-	util.sendEmail(email, '%s Email Verification' % (service_name),
+	util.sendEmail(email, '%s Email Verification' % (NAME),
 		'Hello from %s! Use this link to verify your email: %s'
-		 % (service_name, link))
+		 % (NAME, link))
 
 	return jsonify({
 		'email': user.email,
