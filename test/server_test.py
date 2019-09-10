@@ -879,7 +879,11 @@ def serverTests():
 			nonlocal test_user
 			PendingEmail.create(code=test_code, user=test_user, email=test_email)
 			response = app.get('/update/email/confirm/' + test_code)
-			assertResponse(response, 200, 'Ok')
+			assert_that(response.status_code, equal_to(200))
+			assert_that(
+				response.get_data(as_text=True),
+				contains_string('Email successfully confirmed!')
+			)
 
 			user = User.get_by_id(test_user.id)
 			assert_that(user.email, equal_to(test_email))

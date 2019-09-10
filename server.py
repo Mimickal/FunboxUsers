@@ -301,7 +301,7 @@ def confirmEmail(code):
 	Code.use_code(code)
 	pending.delete_instance()
 
-	return ok()
+	return render_template('email.html')
 
 
 @app.route('/update/email', methods=['DELETE'])
