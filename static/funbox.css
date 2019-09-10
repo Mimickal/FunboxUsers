@@ -61,6 +61,9 @@ h1 {
 	margin-top: 0px;
 	text-align: center;
 }
+h2 {
+	font: 18pt orbitron;
+}
 input {
 	border: 2px solid;
 	margin-bottom: 20px;
