@@ -1,6 +1,7 @@
 import os
 from random import choice
 import re
+import socket
 import string
 from subprocess import PIPE, Popen
 import yaml
@@ -102,3 +103,8 @@ def loadYaml(yaml_file):
 	with open(yaml_file) as fileobj:
 		return yaml.safe_load(fileobj)
 
+def getFqdn():
+	name = socket.getfqdn()
+	if not name.endswith('/'):
+		name += '/'
+	return name

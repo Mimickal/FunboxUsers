@@ -2,7 +2,6 @@ import html
 from random import choice
 import re
 from string import ascii_letters, digits
-import socket
 
 from flask import Flask, jsonify, redirect, render_template, request, session
 from flask_limiter import Limiter
@@ -271,7 +270,7 @@ def addEmail():
 	code = Code.get_by_code(code_str)
 	PendingEmail.upsert(code=code, user=user, email=email)
 
-	link = socket.getfqdn() + 'update/email/confirm/' + code
+	link = util.getFqdn() + 'update/email/confirm/' + code
 	util.sendEmail(email, NAME + ' Email Verification',
 		'Hello from ' + NAME + '! Use this link to verify your email: ' + link)
 
