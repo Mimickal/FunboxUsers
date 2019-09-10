@@ -270,7 +270,7 @@ def addEmail():
 	code = Code.get_by_code(code_str)
 	PendingEmail.upsert(code=code, user=user, email=email)
 
-	link = util.getFqdn() + 'update/email/confirm/' + code
+	link = util.getFullLink('update/email/confirm/', code)
 	util.sendEmail(email, NAME + ' Email Verification',
 		'Hello from ' + NAME + '! Use this link to verify your email: ' + link)
 

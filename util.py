@@ -1,6 +1,7 @@
 import os
 from random import choice
 import re
+import posixpath
 import socket
 import string
 from subprocess import PIPE, Popen
@@ -104,7 +105,17 @@ def loadYaml(yaml_file):
 		return yaml.safe_load(fileobj)
 
 def getFqdn():
+	'''Gets fqdn that always ends with /'''
 	name = socket.getfqdn()
 	if not name.endswith('/'):
 		name += '/'
 	return name
+
+def getFullLink(*args):
+	'''Takes a relative link or multiple pieces of a relative link and returns
+	a full link containining the fqdn'''
+	# Parsing it into a new list, because you cannot edit args directly.
+	parts = []
+	for arg in args:
+		parts.append(str(arg))
+	return posixpath.join(socket.getfqdn(), *parts)
