@@ -867,7 +867,7 @@ def serverTests():
 			# Check email was sent with valid code
 			args = mock_emailer.call_args[0]
 			assert_that(args[0], equal_to(test_email))
-			assert_that(args[1], equal_to('Funbox Password Change Notice'))
+			assert_that(args[1], equal_to('%s Password Change Notice' % (config['service_name'])))
 			assert_that(args[2], contains_string('change'))
 			assert_that(args[2], contains_string('password'))
 			assert_that(args[2], contains_string(test_name))
@@ -955,7 +955,7 @@ def serverTests():
 			# Check email was sent with valid code
 			args = mock_emailer.call_args[0]
 			assert_that(args[0], equal_to(email))
-			assert_that(args[1], equal_to('Funbox Email Verification'))
+			assert_that(args[1], equal_to('%s Email Verification' % (config['service_name'])))
 			code = extractCodeFromEmail(args[2])
 			assert_that(code, not_none())
 
