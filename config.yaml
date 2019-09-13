@@ -6,11 +6,16 @@
 host: '127.0.0.1'
 port: 5000
 
+# Name used in emails and such
+service_name: 'Funbox'
+
 # This should probably stay disabled
 debug: false
 
 # See https://flask-limiter.readthedocs.io/en/stable/#ratelimit-string
 rate_login: '10/hour;100/day'
+rate_reset: '10/day'
+rate_confirm: '6/hour;10/day'
 
 # Not yet implemented
 log:

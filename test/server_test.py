@@ -7,7 +7,7 @@ from hamcrest import *
 from peewee import fn
 from pocha import afterEach, before, beforeEach, describe, it
 
-from db import User, Code, PendingEmail, LoginCode
+from db import User, Code, PasswordReset, PendingEmail, LoginCode
 from server import app as server_app, limiter
 import testutil
 import util
@@ -37,6 +37,8 @@ def serverTests():
 
 	config = util.loadYaml('config.yaml')
 	rate_login = int(re.search('(\d+)', config['rate_login']).group(1))
+	rate_reset = int(re.search('(\d+)', config['rate_reset']).group(1))
+	rate_confirm = int(re.search('(\d+)', config['rate_confirm']).group(1))
 
 	server_app.config['TESTING'] = True
 	app = server_app.test_client()
@@ -554,6 +556,172 @@ def serverTests():
 		# TODO this^ when accessed_at is implemented.
 		# Probably check that accessed_at != created and updated
 
+	@describe('Trigger Password Reset')
+	def triggerPasswordReset():
+
+		@beforeEach
+		def _beforeEach():
+			testutil.clearDatabase()
+			createTestUser()
+			enableRateLimiter(False)
+
+		@afterEach
+		def _afterEach():
+			enableRateLimiter(False)
+
+		@it('Non-existing User')
+		@patch('util.sendEmail')
+		def nonexistingUser(mock_emailer):
+			response = app.post('/update/password/reset/bad_user')
+			assertResponse(response, 200, 'Reset email sent')
+			assert_that(mock_emailer.call_args, none())
+			assert_that(PasswordReset.get_by_user(test_user), none())
+
+		@it('User without email')
+		@patch('util.sendEmail')
+		def userWithoutEmail(mock_emailer):
+			test_user.email = None
+			test_user.save()
+
+			response = app.post('/update/password/reset/' + test_name)
+			assertResponse(response, 200, 'Reset email sent')
+			assert_that(mock_emailer.call_args, none())
+			assert_that(PasswordReset.get_by_user(test_user), none())
+
+		@it('User without confirmed email')
+		@patch('util.sendEmail')
+		def userWithUnconfEmail(mock_emailer):
+			test_user.email = None
+			test_user.save()
+			Code.create(code=test_code)
+			PendingEmail.create(
+				user = test_user,
+				code = test_code,
+				email = 'whatever@email.com'
+			)
+
+			response = app.post('/update/password/reset/' + test_name)
+			assertResponse(response, 200, 'Reset email sent')
+			assert_that(mock_emailer.call_args, none())
+			assert_that(PasswordReset.get_by_user(test_user), none())
+
+		@it('Reset email sent to user with email')
+		@patch('util.sendEmail')
+		def resetEmailSent(mock_emailer):
+			Code.create(code=test_code)
+			PendingEmail.create(
+				user = test_user,
+				code = test_code,
+				email = 'whatever@email.com'
+			)
+
+			response = app.post('/update/password/reset/' + test_name)
+			assertResponse(response, 200, 'Reset email sent')
+			assert_that(PasswordReset.get_by_user(test_user), not_none())
+
+			args = mock_emailer.call_args[0]
+			assert_that(args[0], equal_to(test_email))
+			assert_that(args[1], equal_to('Funbox Password Reset'))
+			assert_that(args[2], contains_string('use this link'))
+			assert_that(args[2], contains_string('update/password/reset/'))
+
+		@it('Hitting rate limit')
+		def hittingRateLimit():
+			enableRateLimiter(True)
+			for _ in range(rate_reset):
+				response = app.post('/update/password/reset/bad_name')
+				assertResponse(response, 200, 'Reset email sent')
+			response = app.post('/update/password/reset/bad_name')
+			assertResponse(response, 429, 'Too many requests')
+
+	@describe('Confirm password reset')
+	def confirmPasswordReset():
+
+		@beforeEach
+		def _beforeEach():
+			testutil.clearDatabase()
+			enableRateLimiter(False)
+			user = createTestUser()
+			Code.create(code=test_code)
+			PasswordReset.create(user=user, code=test_code)
+
+		@it('Missing JSON data')
+		def missingJSONData():
+			response = app.put('/update/password/reset', data={})
+			assertResponse(response, 400, 'Missing json data')
+
+		@it('Incorrect reset code')
+		def incorrectResetCode():
+			response = app.put('/update/password/reset', json={
+				'reset_code': 'bad code',
+				'pass_new': test_pass,
+				'pass_new_conf': test_pass
+			})
+			assertResponse(response, 403, 'Forbidden')
+
+		@it('Missing/Empty/Invalid passwords')
+		def invalidPasswords():
+			combos = (
+				(None        , 'new pass'  ),
+				('new pass'  , None        ),
+				(''          , 'new pass'  ),
+				('new pass'  , ''          ),
+				(['new pass'], 'new pass'  ),
+				('new pass'  , ['new pass']),
+			)
+			for combo in combos:
+				response = app.put('/update/password/reset', json={
+					'reset_code': test_code,
+					'pass_new': combo[0],
+					'pass_new_conf': combo[1]
+				})
+				assertResponse(response, 400, 'Invalid password')
+
+		@it('Mismatched password')
+		def mismatchedPassword():
+			response = app.put('/update/password/reset', json={
+				'reset_code': test_code,
+				'pass_new': 'new pass',
+				'pass_new_conf': 'I do not match'
+			})
+			assertResponse(response, 400, 'Passwords do not match')
+
+		@it('Hitting rate limit')
+		def hittingRateLimit():
+			enableRateLimiter(True)
+			json = {
+				'reset_code': 'bad code',
+				'pass_new': 'new pass',
+				'pass_new_conf': 'new pass'
+			}
+			for _ in range(rate_confirm):
+				response = app.put('/update/password/reset', json=json)
+				assertResponse(response, 403, 'Forbidden')
+			response = app.put('/update/password/reset', json=json)
+			assertResponse(response, 429, 'Too many requests')
+
+		@it('Password successfully reset')
+		def successfulPasswordReset():
+			new_pass = 'my shiny new password'
+			response = app.put('/update/password/reset', json={
+				'reset_code': test_code,
+				'pass_new': new_pass,
+				'pass_new_conf': new_pass
+			})
+			assertResponse(response, 200, 'Ok')
+
+			user = User.get_by_name(test_name)
+			assert_that(
+				util.hashPassword(new_pass, user.pass_salt),
+				equal_to(user.pass_hash)
+			)
+
+			assert_that(
+				Code.get_by_code(test_code, include_used=True).used_at,
+				not_none()
+			)
+			assert_that(PasswordReset.get_by_code(test_code), none())
+
 	@describe('Change password')
 	def changePassword():
 
@@ -699,7 +867,7 @@ def serverTests():
 			# Check email was sent with valid code
 			args = mock_emailer.call_args[0]
 			assert_that(args[0], equal_to(test_email))
-			assert_that(args[1], equal_to('Funbox Password Change Notice'))
+			assert_that(args[1], equal_to('%s Password Change Notice' % (config['service_name'])))
 			assert_that(args[2], contains_string('change'))
 			assert_that(args[2], contains_string('password'))
 			assert_that(args[2], contains_string(test_name))
@@ -787,7 +955,7 @@ def serverTests():
 			# Check email was sent with valid code
 			args = mock_emailer.call_args[0]
 			assert_that(args[0], equal_to(email))
-			assert_that(args[1], equal_to('Funbox Email Verification'))
+			assert_that(args[1], equal_to('%s Email Verification' % (config['service_name'])))
 			code = extractCodeFromEmail(args[2])
 			assert_that(code, not_none())
 
@@ -879,7 +1047,11 @@ def serverTests():
 			nonlocal test_user
 			PendingEmail.create(code=test_code, user=test_user, email=test_email)
 			response = app.get('/update/email/confirm/' + test_code)
-			assertResponse(response, 200, 'Ok')
+			assert_that(response.status_code, equal_to(200))
+			assert_that(
+				response.get_data(as_text=True),
+				contains_string('Email successfully confirmed!')
+			)
 
 			user = User.get_by_id(test_user.id)
 			assert_that(user.email, equal_to(test_email))

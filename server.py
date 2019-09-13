@@ -10,26 +10,28 @@ from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFError, CSRFProtect
 from playhouse.shortcuts import model_to_dict
 
-from db import Code, LoginCode, PendingEmail, User
+from db import Code, LoginCode, PasswordReset, PendingEmail, User
 import util
 
+config = util.loadYaml('config.yaml')
 
 CODE_VALIDATOR = re.compile(r'^(\w{8})$')
 CODE_SIZE = 8
 LOGIN_COOKIE_SIZE = 16
 
-NAME = 'Funbox'
+NAME = config['service_name']
 
-app = Flask('Funbox Accounts')
+app = Flask(NAME)
 app.secret_key = util.getSecretKey('secret.key')
-
-config = util.loadYaml('config.yaml')
 
 csrf = CSRFProtect(app)
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 
 limiter = Limiter(app, key_func=get_remote_address)
 login_limit = limiter.shared_limit(config['rate_login'], scope='login')
+reset_limit = limiter.shared_limit(config['rate_reset'], scope='reset')
+confirm_limit = limiter.shared_limit(config['rate_confirm'], scope='confirm')
+
 
 Talisman(app,
 	force_https=config['https']['enabled'],
@@ -229,11 +231,63 @@ def changePassword():
 	user.save()
 
 	if user.email:
-		# TODO Unhardcode name
-		util.sendEmail(user.email, 'Funbox Password Change Notice',
-			'Hello from funbox! The password for %s was just changed. '
+		util.sendEmail(user.email, '%s Password Change Notice' % (NAME),
+			'Hello from %s! The password for %s was just changed. '
 			'If this was not your doing then now is the time to scream.'
-			% (html.escape(user.name)))
+			% (NAME, html.escape(user.name)))
+
+	return ok()
+
+
+@reset_limit
+@app.route('/update/password/reset/<username>', methods=['POST'])
+def triggerPasswordChange(username):
+	user = User.get_by_name(username)
+
+	if user and user.email:
+		code_str = util.makeUniqueCode(CODE_SIZE)
+		code = Code.get_by_code(code_str)
+		PasswordReset.create(user=user, code=code)
+
+		link = socket.getfqdn() + 'update/password/reset/' + code
+		util.sendEmail(user.email, NAME + ' Password Reset',
+			'Hello from ' + NAME + '!\n'
+			'A password reset was requested for the account attached to this '
+			'email. If you requested this, use this link: ' + link + '\n\n'
+			'If you didn\'t request this, please ignore this email.'
+		)
+
+	# Always return this even if the user doesn't exist or have an email.
+	# Helps prevent sussing out a list of users.
+	return 'Reset email sent', 200
+
+
+@confirm_limit
+@app.route('/update/password/reset', methods=['PUT'])
+def confirmPasswordChange():
+	json = request.json
+	if json is None:
+		return 'Missing json data', 400
+
+	code = json.get('reset_code')
+	password_reset = PasswordReset.get_by_code(code)
+	if not password_reset:
+		return forbidden()
+
+	new1 = json.get('pass_new')
+	new2 = json.get('pass_new_conf')
+
+	if not util.isValidPassword(new1) or not util.isValidPassword(new2):
+		return 'Invalid password', 400
+
+	if new1 != new2:
+		return 'Passwords do not match', 400
+
+	user = password_reset.user
+	user.pass_hash = util.hashPassword(new1, user.pass_salt)
+	user.save()
+	Code.use_code(code)
+	password_reset.delete_instance()
 
 	return ok()
 
@@ -270,9 +324,12 @@ def addEmail():
 	code = Code.get_by_code(code_str)
 	PendingEmail.upsert(code=code, user=user, email=email)
 
+
 	link = util.getFullLink('update/email/confirm/', code)
-	util.sendEmail(email, NAME + ' Email Verification',
-		'Hello from ' + NAME + '! Use this link to verify your email: ' + link)
+	util.sendEmail(email, '%s Email Verification' % (NAME),
+		'Hello from %s! Use this link to verify your email: %s'
+		 % (NAME, link))
+
 
 	return jsonify({
 		'email': user.email,
@@ -300,7 +357,7 @@ def confirmEmail(code):
 	Code.use_code(code)
 	pending.delete_instance()
 
-	return ok()
+	return render_template('email.html')
 
 
 @app.route('/update/email', methods=['DELETE'])
@@ -338,4 +395,3 @@ if __name__ == '__main__':
 		debug=config['debug'],
 		ssl_context=context
 	)
-
