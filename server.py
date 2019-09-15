@@ -249,7 +249,7 @@ def triggerPasswordChange(username):
 		code = Code.get_by_code(code_str)
 		PasswordReset.create(user=user, code=code)
 
-		link = socket.getfqdn() + 'update/password/reset/' + code
+		link = util.getFullLink('update/password/reset/', code)
 		util.sendEmail(user.email, NAME + ' Password Reset',
 			'Hello from ' + NAME + '!\n'
 			'A password reset was requested for the account attached to this '
