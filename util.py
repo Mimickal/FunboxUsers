@@ -115,7 +115,10 @@ def getFullLink(*args):
 	'''Takes a relative link or multiple pieces of a relative link and returns
 	a full link containining the fqdn'''
 	# Parsing it into a new list, because you cannot edit args directly.
-	parts = []
+	parts = [getFqdn()]
 	for arg in args:
-		parts.append(str(arg))
-	return posixpath.join(socket.getfqdn(), *parts)
+		# the lstrip is so that the posixpath.join function does not interpret
+		# any pieces in the middle as the root and cuts the path in half
+		# Confused? Yeah me too.
+		parts.append(str(arg).lstrip("/"))
+	return posixpath.join(*parts)
