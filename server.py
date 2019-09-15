@@ -324,12 +324,10 @@ def addEmail():
 	code = Code.get_by_code(code_str)
 	PendingEmail.upsert(code=code, user=user, email=email)
 
-
 	link = util.getFullLink('update/email/confirm/', code)
 	util.sendEmail(email, '%s Email Verification' % (NAME),
 		'Hello from %s! Use this link to verify your email: %s'
 		 % (NAME, link))
-
 
 	return jsonify({
 		'email': user.email,
