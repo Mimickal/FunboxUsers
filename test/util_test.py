@@ -1,6 +1,7 @@
 import os
 import shutil
 from tempfile import NamedTemporaryFile
+from unittest.mock import patch
 from yaml.parser import ParserError
 
 from hamcrest import *
@@ -188,3 +189,44 @@ def utilTests():
 			yaml = util.loadYaml('config.yaml')
 			assert_that(yaml, instance_of(dict))
 
+	@describe('getFqdn')
+	def test_getFqdn():
+
+		@it('Adds / at the end when there isn\'t one')
+		@patch('socket.getfqdn')
+		def addsSlash(mock_getfqdn):
+			mock_getfqdn.return_value = "word"
+
+			assert_that(util.getFqdn(), equal_to("word/"))
+
+		@it('Does not add / if fqdn already ends with one')
+		@patch('socket.getfqdn')
+		def notAddsSlash(mock_getfqdn):
+			mock_getfqdn.return_value = "word/"
+
+			assert_that(util.getFqdn(), equal_to("word/"))
+
+	@describe('getFullLink')
+	def test_getFullLink():
+
+		@it('If no args given, just returns the same as getFqdn')
+		def addsSlash():
+			assert_that(util.getFullLink(), equal_to(util.getFqdn()))
+
+		@it('It adds slashes where it needs to')
+		@patch('socket.getfqdn')
+		def notAddsSlash(mock_getfqdn):
+			mock_getfqdn.return_value = "word"
+
+			assert_that(
+				util.getFullLink("something_else", "blah"),
+				equal_to("word/something_else/blah")
+			)
+			assert_that(
+				util.getFullLink("/something_else/", "blah"),
+				equal_to("word/something_else/blah")
+			)
+			assert_that(
+				util.getFullLink("something_else/", "blah/"),
+				equal_to("word/something_else/blah/")
+			)
