@@ -2,7 +2,6 @@ import html
 from random import choice
 import re
 from string import ascii_letters, digits
-import socket
 
 from flask import Flask, jsonify, redirect, render_template, request, session
 from flask_limiter import Limiter
@@ -250,7 +249,7 @@ def triggerPasswordChange(username):
 		code = Code.get_by_code(code_str)
 		PasswordReset.create(user=user, code=code)
 
-		link = socket.getfqdn() + 'update/password/reset/' + code
+		link = util.getFullLink('update/password/reset/', code)
 		util.sendEmail(user.email, NAME + ' Password Reset',
 			'Hello from ' + NAME + '!\n'
 			'A password reset was requested for the account attached to this '
@@ -325,7 +324,7 @@ def addEmail():
 	code = Code.get_by_code(code_str)
 	PendingEmail.upsert(code=code, user=user, email=email)
 
-	link = socket.getfqdn() + 'update/email/confirm/' + code
+	link = util.getFullLink('update/email/confirm/', code)
 	util.sendEmail(email, '%s Email Verification' % (NAME),
 		'Hello from %s! Use this link to verify your email: %s'
 		 % (NAME, link))

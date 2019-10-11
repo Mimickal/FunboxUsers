@@ -1,6 +1,8 @@
 import os
 from random import choice
 import re
+import posixpath
+import socket
 import string
 from subprocess import PIPE, Popen
 import yaml
@@ -102,3 +104,21 @@ def loadYaml(yaml_file):
 	with open(yaml_file) as fileobj:
 		return yaml.safe_load(fileobj)
 
+def getFqdn():
+	'''Gets fqdn that always ends with /'''
+	name = socket.getfqdn()
+	if not name.endswith('/'):
+		name += '/'
+	return name
+
+def getFullLink(*args):
+	'''Takes a relative link or multiple pieces of a relative link and returns
+	a full link containining the fqdn'''
+	# Parsing it into a new list, because you cannot edit args directly.
+	parts = [getFqdn()]
+	for arg in args:
+		# the lstrip is so that the posixpath.join function does not interpret
+		# any pieces in the middle as the root and cuts the path in half
+		# Confused? Yeah me too.
+		parts.append(str(arg).lstrip("/"))
+	return posixpath.join(*parts)
