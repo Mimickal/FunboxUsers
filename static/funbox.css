@@ -86,7 +86,7 @@ button {
 	color: #00E2FF;
 }
 button:hover:enabled { background: #D5FAFF; }
-button:active:emabled { background: #005E6A; }
+button:active:enabled { background: #005E6A; }
 button:disabled {
 	background: gray;
 	border-color: lightgray;
