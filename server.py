@@ -13,7 +13,30 @@ from playhouse.shortcuts import model_to_dict
 from db import Code, LoginCode, PasswordReset, PendingEmail, User
 import util
 
-config = util.loadYaml('config.yaml')
+DEFAULT_CONFIG_PATH = 'config.yaml'
+
+# The reason for including this up here instead of down below is so we can
+# non-intrusively change some constants before they are used.
+
+# temp vars:
+config_path = DEFAULT_CONFIG_PATH
+
+if __name__ == '__main__':
+	from argparse import ArgumentParser
+
+	# Initialize startup arguments
+	parser = ArgumentParser(description='FunboxUsers Account server')
+	parser.add_argument(
+		'--config-path', metavar='config_path', type=str,
+		help='Path to the config yaml. DEFAULT='+DEFAULT_CONFIG_PATH,
+		default=DEFAULT_CONFIG_PATH
+	)
+	args = parser.parse_args()
+
+	config_path = args.config_path
+
+config = util.loadYaml(config_path)
+del config_path
 
 CODE_VALIDATOR = re.compile(r'^(\w{8})$')
 CODE_SIZE = 8
