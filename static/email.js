@@ -1,6 +1,6 @@
 window.onload = function() {
 	setTimeout(function() {
-		window.location = './account';
+		window.location = '/account';
 	}, 5000);
 };
 
