@@ -4,52 +4,26 @@ from flask_limiter.util import get_remote_address
 from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFError, CSRFProtect
 
+import config
 import route_impl
 import util
 
-DEFAULT_CONFIG_PATH = 'config.yaml'
 
-# The reason for including this up here instead of down below is so we can
-# non-intrusively change some constants before they are used.
-
-# temp vars:
-config_path = DEFAULT_CONFIG_PATH
-
-if __name__ == '__main__':
-	from argparse import ArgumentParser
-
-	# Initialize startup arguments
-	parser = ArgumentParser(description='FunboxUsers Account server')
-	parser.add_argument(
-		'--config-path', metavar='config_path', type=str,
-		help='Path to the config yaml. DEFAULT='+DEFAULT_CONFIG_PATH,
-		default=DEFAULT_CONFIG_PATH
-	)
-	args = parser.parse_args()
-
-	config_path = args.config_path
-
-config = util.loadYaml(config_path)
-del config_path
-
-NAME = config['service_name']
-
-app = Flask(NAME)
+app = Flask(config.serviceName())
 app.secret_key = util.getSecretKey('secret.key')
 
 csrf = CSRFProtect(app)
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 
 limiter = Limiter(app, key_func=get_remote_address)
-login_limit = limiter.shared_limit(config['rate_login'], scope='login')
-reset_limit = limiter.shared_limit(config['rate_reset'], scope='reset')
-confirm_limit = limiter.shared_limit(config['rate_confirm'], scope='confirm')
-
+login_limit = limiter.shared_limit(config.rateLogin(), scope='login')
+reset_limit = limiter.shared_limit(config.rateReset(), scope='reset')
+confirm_limit = limiter.shared_limit(config.rateConfirm(), scope='confirm')
 
 Talisman(app,
-	force_https=config['https']['enabled'],
+	force_https=config.devHTTPSEnabled(),
 	session_cookie_http_only=True,
-	session_cookie_secure=config['https']['enabled'],
+	session_cookie_secure=config.devHTTPSEnabled(),
 	strict_transport_security=True
 )
 
@@ -141,13 +115,15 @@ def removeEmail():
 
 
 if __name__ == '__main__':
+	# This is actually just HTTPS for Flask's development server.
+	# Production uses HTTP with HTTPS offloaded to Apache via a WSGI app.
 	context=None
-	if config['https']['enabled']:
-		context = (config['https']['cert_file'], config['https']['key_file'])
+	if config.devHTTPSEnabled():
+		context = (config.devHTTPSCertFile(), config.devHTTPSKeyFile())
 
 	app.run(
-		host=config['host'],
-		port=config['port'],
-		debug=config['debug'],
+		host=config.host(),
+		port=config.port(),
+		debug=config.debug(),
 		ssl_context=context
 	)

@@ -1,4 +1,5 @@
 # Funbox Users config
+# TODO WSGI might make this entire thing redundant. We'll see.
 ---
 # Hostname the server listens on.
 # If proxying through Apache, this should probably be '127.0.0.1'.
@@ -26,12 +27,13 @@ log:
   #format: '' # Not sure if this is even reasonable
 
 # Currently just set for testing with https
-# TODO might not need this with Apache
+# TODO might not need this with Apache.
 # NOTE In dev, toggling https when the browser has an active cookie can
 # cause the server to fail to give the browser a new cookie. The work-around is
 # to toggle https back to what it was before, reload, then clear the cookie.
-# Also, https can just be really frickin slow, for some reason.
-# Finally, enabling this will make *all* the server tests fail.
+# NOTE Also, https can just be really frickin slow, for some reason.
+# NOTE Finally, enabling this will make *all* the server tests fail, because
+# tests load this real config file. TODO they should not do that.
 https:
   enabled: false
   cert_file: 'cert.pem'
