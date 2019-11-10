@@ -9,7 +9,6 @@ from db import Code, LoginCode, PasswordReset, PendingEmail, User
 import util
 
 
-CODE_VALIDATOR = re.compile(r'^(\w{8})$')
 CODE_SIZE = 8
 LOGIN_COOKIE_SIZE = 16
 NAME = config.serviceName()
@@ -275,8 +274,8 @@ def updateEmail():
 
 
 def confirmEmail(code):
-	global CODE_VALIDATOR
-	if CODE_VALIDATOR.match(code) is None:
+	global CODE_SIZE
+	if not util.isValidCodeWithLength(code, CODE_SIZE):
 		return forbidden()
 
 	pending = PendingEmail.get_by_code(code)

@@ -117,6 +117,52 @@ def utilTests():
 				raises(Exception, 'No remaining unique codes available of length 1')
 			)
 
+	@describe('isValidCode')
+	def test_isValidCode():
+
+		@it('Returns True for valid code')
+		def validCodeTrue():
+			assert_that(util.isValidCode('abcd'), equal_to(True))
+
+		@it('Returns False for invalid code')
+		def invalidCodeFalse():
+			assert_that(util.isValidCode('*/aaaa/'), equal_to(False))
+
+		@it('Returns False for non-string values')
+		def nonStringCodeFalse():
+			assert_that(util.isValidCode(['abc']), equal_to(False))
+			assert_that(util.isValidCode({'abc': 'a'}), equal_to(False))
+
+	@describe('isValidCodeWithLength')
+	def test_isValidCodeWithLength():
+
+		@it('Returns True for valid code with matching length')
+		def validMatchingLength():
+			assert_that(util.isValidCodeWithLength('abcd', 4), equal_to(True))
+
+		@it('Returns False for valid code with non-matching length')
+		def validNonMatchingiLength():
+			assert_that(util.isValidCodeWithLength('abcd', 5), equal_to(False))
+
+		@it('Returns False for invalid code even with matching length')
+		def invalidMatchingLength():
+			assert_that(util.isValidCodeWithLength('abcd*', 6), equal_to(False))
+
+		@it('Returns False for non-string code values')
+		def nonStringValues():
+			assert_that(util.isValidCodeWithLength(['abcd'], 4), equal_to(False))
+			assert_that(
+				util.isValidCodeWithLength({'abcd': 'a'}, 4),
+				equal_to(False)
+			)
+
+		@it('Number exception for non-int length values...?')
+		def nonIntValues():
+			assert_that(
+				calling(util.isValidCodeWithLength).with_args('abcd', [4]),
+				raises(TypeError, 'length is not an int')
+			)
+
 	@describe('isValidPassword')
 	def test_isValidPassword():
 
