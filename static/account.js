@@ -50,7 +50,7 @@ window.onload = function() {
 	logoutBtn.onclick = logout;
 
 	// Load the logged in user's data
-	window.fetch('./user').then(async function(res) {
+	window.fetch('/user').then(async function(res) {
 		if (!res.ok) {
 			return;
 		}
@@ -130,7 +130,7 @@ window.onload = function() {
 		}
 		else {
 			disablePasswordForm();
-			window.fetch('./update/password', {
+			window.fetch('/update/password', {
 				method: 'put',
 				headers: {
 					'Content-type': 'application/json; charset=UTF-8',
@@ -214,7 +214,7 @@ window.onload = function() {
 			disableEmailForm();
 			emailIssue.textContent = "";
 
-			window.fetch('./update/email', {
+			window.fetch('/update/email', {
 				method: 'put',
 				headers: {
 					'Content-type': 'application/json; charset=UTF-8',
@@ -256,7 +256,7 @@ window.onload = function() {
 	}
 
 	function logout() {
-		window.fetch('./logout', {
+		window.fetch('/logout', {
 			method: 'post',
 			headers: {
 				'X-CSRFToken': csrfInput.value
