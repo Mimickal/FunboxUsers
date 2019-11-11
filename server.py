@@ -30,20 +30,19 @@ Talisman(app,
 @app.errorhandler(404)
 @app.errorhandler(405)
 def handle_generic(err):
-	return 'Forbidden', 403
+	return route_impl.handle_generic(err)
 
 @app.errorhandler(429)
 def handle_tooManyRequests(err):
-	return 'Too many requests', 429
+	return route_impl.handle_tooManyRequests(err)
 
 @app.errorhandler(500)
 def handle_500(err):
-	return 'Internal server error', 500
+	return route_impl.handle_500(err)
 
 @app.errorhandler(CSRFError)
 def handle_CSRFError(err):
-	# TODO log the real error probably
-	return 'Session expired. Reload and try again', 400
+	return route_impl.handle_CSRFError(err)
 
 
 @app.route('/login', methods=['GET'])
