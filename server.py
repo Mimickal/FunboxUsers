@@ -1,418 +1,128 @@
-import html
-from random import choice
-import re
-from string import ascii_letters, digits
-
-from flask import Flask, jsonify, redirect, render_template, request, session
+from flask import Flask
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFError, CSRFProtect
-from playhouse.shortcuts import model_to_dict
 
-from db import Code, LoginCode, PasswordReset, PendingEmail, User
+import config
+import route_impl
 import util
 
-DEFAULT_CONFIG_PATH = 'config.yaml'
 
-# The reason for including this up here instead of down below is so we can
-# non-intrusively change some constants before they are used.
-
-# temp vars:
-config_path = DEFAULT_CONFIG_PATH
-
-if __name__ == '__main__':
-	from argparse import ArgumentParser
-
-	# Initialize startup arguments
-	parser = ArgumentParser(description='FunboxUsers Account server')
-	parser.add_argument(
-		'--config-path', metavar='config_path', type=str,
-		help='Path to the config yaml. DEFAULT='+DEFAULT_CONFIG_PATH,
-		default=DEFAULT_CONFIG_PATH
-	)
-	args = parser.parse_args()
-
-	config_path = args.config_path
-
-config = util.loadYaml(config_path)
-del config_path
-
-CODE_VALIDATOR = re.compile(r'^(\w{8})$')
-CODE_SIZE = 8
-LOGIN_COOKIE_SIZE = 16
-
-NAME = config['service_name']
-
-app = Flask(NAME)
+app = Flask(config.serviceName())
 app.secret_key = util.getSecretKey('secret.key')
 
 csrf = CSRFProtect(app)
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 
 limiter = Limiter(app, key_func=get_remote_address)
-login_limit = limiter.shared_limit(config['rate_login'], scope='login')
-reset_limit = limiter.shared_limit(config['rate_reset'], scope='reset')
-confirm_limit = limiter.shared_limit(config['rate_confirm'], scope='confirm')
-
+login_limit = limiter.shared_limit(config.rateLogin(), scope='login')
+reset_limit = limiter.shared_limit(config.rateReset(), scope='reset')
+confirm_limit = limiter.shared_limit(config.rateConfirm(), scope='confirm')
 
 Talisman(app,
-	force_https=config['https']['enabled'],
+	force_https=config.devHTTPSEnabled(),
 	session_cookie_http_only=True,
-	session_cookie_secure=config['https']['enabled'],
+	session_cookie_secure=config.devHTTPSEnabled(),
 	strict_transport_security=True
 )
 
 @app.errorhandler(404)
 @app.errorhandler(405)
 def handle_generic(err):
-	return forbidden()
+	return route_impl.handle_generic(err)
 
 @app.errorhandler(429)
 def handle_tooManyRequests(err):
-	return 'Too many requests', 429
+	return route_impl.handle_tooManyRequests(err)
 
 @app.errorhandler(500)
 def handle_500(err):
-	return 'Internal server error', 500
+	return route_impl.handle_500(err)
 
 @app.errorhandler(CSRFError)
 def handle_CSRFError(err):
-	# TODO log the real error probably
-	return 'Session expired. Reload and try again', 400
+	return route_impl.handle_CSRFError(err)
 
 
 @app.route('/login', methods=['GET'])
-def getLogin():
+def getLoginPage():
 	csrf.protect()
-
-	if LoginCode.get_by_code(session.get('login')):
-		return redirect('/account')
-	else:
-		return render_template('login.html')
-
+	return route_impl.getLoginPage()
 
 @login_limit
 @app.route('/login/form', methods=['POST'])
 def userLoginForm():
 	csrf.protect()
-
-	# form will never be None, otherwise CSRF protection will trigger
-	form = request.form
-	try:
-		username = form['username']
-		password = form['password']
-	except KeyError:
-		return 'Missing username / password in form body', 400
-
-	return verifyLogin(username, password, cookie=True)
-
+	return route_impl.userLoginForm()
 
 @login_limit
 @app.route('/login/basic', methods=['POST'])
 def userLoginBasic():
-	auth = request.authorization
-	return verifyLogin(auth.username, auth.password)
-
+	return route_impl.userLoginBasic()
 
 @login_limit
 @app.route('/login/json', methods=['POST'])
 def userLoginJson():
 	csrf.protect()
-	json = request.json
-
-	if json is None:
-		return 'Missing JSON body', 400
-
-	try:
-		username = json['username']
-		password = json['password']
-	except KeyError:
-		return 'Missing username / password in JSON body', 400
-	except TypeError:
-		return 'Malformed JSON body', 400
-
-	return verifyLogin(username, password, cookie=True)
-
-
-def verifyLogin(username, password, cookie=False):
-	global LOGIN_COOKIE_SIZE
-
-	if session.get('login', None) is not None:
-		return 'Already logged in', 400
-
-	user = User.get_by_name(username)
-
-	# Return 403 instead of a 404 to make list of users harder to brute force
-	if user is None:
-		return forbidden()
-
-	pw_hash = util.hashPassword(password, user.pass_salt)
-
-	if pw_hash == user.pass_hash:
-		if cookie:
-			code_str = util.makeUniqueCode(LOGIN_COOKIE_SIZE)
-			code = Code.get_by_code(code_str)
-			LoginCode.upsert(user=user, code=code_str)
-			session['login'] = code_str
-			return redirect('/account')
-		else:
-			return ok()
-	else:
-		return forbidden()
-
+	return route_impl.userLoginJson()
 
 # We could reasonably use a DELETE here, but we're using POST to maintain
 # compatibility with older POST-only HTML forms.
 @app.route('/logout', methods=['POST'])
-def logout():
+def userLogout():
 	csrf.protect()
-
-	login_code = session.get('login', None)
-	if login_code is None:
-		return forbidden()
-
-	login = LoginCode.get_by_code(login_code)
-	if login is None:
-		return forbidden()
-
-	login.delete_instance()
-	Code.use_code(login_code)
-	session.pop('login')
-	return redirect('/login')
-
+	return route_impl.userLogout()
 
 @app.route('/account', methods=['GET'])
-def getAccount():
+def getAccountPage():
 	csrf.protect()
-
-	if LoginCode.get_by_code(session.get('login')):
-		return render_template('account.html')
-	else:
-		return redirect('/login')
-
+	return route_impl.getAccountPage()
 
 @app.route('/user', methods=['GET'])
 def getUser():
-	login_code = session.get('login', None)
-	if login_code is None:
-		return forbidden()
-
-	login = LoginCode.get_by_code(login_code)
-	if login is None:
-		return forbidden()
-
-	user = login.user
-
-	info = model_to_dict(user)
-	info.pop('pass_hash', None)
-	info.pop('pass_salt', None)
-
-	pending = PendingEmail.get_by_user(user)
-	if pending is not None:
-		info['email_pending'] = pending.email
-
-	return jsonify(info), 200
-
+	return route_impl.getUser()
 
 @app.route('/update/password', methods=['PUT'])
 def changePassword():
 	csrf.protect()
-
-	login_code = session.get('login', None)
-	if login_code is None:
-		return forbidden()
-
-	login = LoginCode.get_by_code(login_code)
-	if login is None:
-		return forbidden()
-
-	json = request.json
-	if json is None:
-		return 'Missing json data', 400
-
-	old = json.get('pass_old', None)
-	new1 = json.get('pass_new', None)
-	new2 = json.get('pass_new_conf', None)
-
-	if old is None or new1 is None or new2 is None:
-		return 'Missing fields', 400
-
-	if not util.isValidPassword(old) or not util.isValidPassword(new1):
-		return 'Invalid password', 400
-
-	user = login.user
-	old_hash = util.hashPassword(old, user.pass_salt)
-	if old_hash != user.pass_hash:
-		return 'Old password incorrect', 400
-
-	if new1 != new2:
-		return 'Passwords do not match', 400
-
-	new_hash = util.hashPassword(new1, user.pass_salt)
-	user.pass_hash = new_hash
-	user.save()
-
-	if user.email:
-		util.sendEmail(user.email, '%s Password Change Notice' % (NAME),
-			'Hello from %s! The password for %s was just changed. '
-			'If this was not your doing then now is the time to scream.'
-			% (NAME, html.escape(user.name)))
-
-	return ok()
-
+	return route_impl.changePassword()
 
 @reset_limit
 @app.route('/update/password/reset/<username>', methods=['POST'])
 def triggerPasswordChange(username):
-	user = User.get_by_name(username)
-
-	if user and user.email:
-		code_str = util.makeUniqueCode(CODE_SIZE)
-		code = Code.get_by_code(code_str)
-		PasswordReset.create(user=user, code=code)
-
-		link = util.getFullLink('update/password/reset/', code)
-		util.sendEmail(user.email, NAME + ' Password Reset',
-			'Hello from ' + NAME + '!\n'
-			'A password reset was requested for the account attached to this '
-			'email. If you requested this, use this link: ' + link + '\n\n'
-			'If you didn\'t request this, please ignore this email.'
-		)
-
-	# Always return this even if the user doesn't exist or have an email.
-	# Helps prevent sussing out a list of users.
-	return 'Reset email sent', 200
-
+	return route_impl.triggerPasswordChange(username)
 
 @confirm_limit
 @app.route('/update/password/reset', methods=['PUT'])
 def confirmPasswordChange():
-	json = request.json
-	if json is None:
-		return 'Missing json data', 400
-
-	code = json.get('reset_code')
-	password_reset = PasswordReset.get_by_code(code)
-	if not password_reset:
-		return forbidden()
-
-	new1 = json.get('pass_new')
-	new2 = json.get('pass_new_conf')
-
-	if not util.isValidPassword(new1) or not util.isValidPassword(new2):
-		return 'Invalid password', 400
-
-	if new1 != new2:
-		return 'Passwords do not match', 400
-
-	user = password_reset.user
-	user.pass_hash = util.hashPassword(new1, user.pass_salt)
-	user.save()
-	Code.use_code(code)
-	password_reset.delete_instance()
-
-	return ok()
-
+	return route_impl.confirmPasswordChange()
 
 @app.route('/update/email', methods=['PUT'])
-def addEmail():
-	global CODE_SIZE
-
+def updateEmail():
 	csrf.protect()
-
-	login_code = session.get('login', None)
-	if login_code is None:
-		return forbidden()
-
-	login = LoginCode.get_by_code(login_code)
-	if login is None:
-		return forbidden()
-
-	user = login.user
-	json = request.json
-	if json is None:
-		return 'Missing json data', 400
-
-	email = json.get('email')
-
-	if not util.isValidEmail(email):
-		return 'Invalid email', 400
-
-	if email == user.email:
-		return 'New email matches old email', 200
-
-	# Create an email verify code
-	code_str = util.makeUniqueCode(CODE_SIZE)
-	code = Code.get_by_code(code_str)
-	PendingEmail.upsert(code=code, user=user, email=email)
-
-	link = util.getFullLink('update/email/confirm/', code)
-	util.sendEmail(email, '%s Email Verification' % (NAME),
-		'Hello from %s! Use this link to verify your email: %s'
-		 % (NAME, link))
-
-	return jsonify({
-		'email': user.email,
-		'email_pending': email
-	})
-
+	return route_impl.updateEmail()
 
 @app.route('/update/email/confirm/<code>', methods=['GET'])
 def confirmEmail(code):
-	global CODE_VALIDATOR
-	if CODE_VALIDATOR.match(code) is None:
-		return forbidden()
-
-	pending = PendingEmail.get_by_code(code)
-	if pending is None:
-		return forbidden()
-
-	user = pending.user
-	# With peewee this shouldn't ever happen
-	if user is None:
-		return forbidden()
-
-	user.email = pending.email
-	user.save()
-	Code.use_code(code)
-	pending.delete_instance()
-
-	return render_template('email.html')
-
+	return route_impl.confirmEmail(code)
 
 @app.route('/update/email', methods=['DELETE'])
 def removeEmail():
 	csrf.protect()
-	code = session.get('login', None)
-	if code is None:
-		return forbidden()
-
-	login = LoginCode.get_by_code(code)
-	if login is None:
-		return forbidden()
-
-	login.user.email = None
-	login.user.save()
-
-	return ok()
-
-
-def ok():
-	return 'Ok', 200
-
-def forbidden():
-	return 'Forbidden', 403
+	return route_impl.removeEmail()
 
 
 if __name__ == '__main__':
+	# This is actually just HTTPS for Flask's development server.
+	# Production uses HTTP with HTTPS offloaded to Apache via a WSGI app.
 	context=None
-	if config['https']['enabled']:
-		context = (config['https']['cert_file'], config['https']['key_file'])
+	if config.devHTTPSEnabled():
+		context = (config.devHTTPSCertFile(), config.devHTTPSKeyFile())
 
 	app.run(
-		host=config['host'],
-		port=config['port'],
-		debug=config['debug'],
+		host=config.host(),
+		port=config.port(),
+		debug=config.debug(),
 		ssl_context=context
 	)

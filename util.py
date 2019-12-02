@@ -14,6 +14,7 @@ from db import User, Code
 
 SECRET_SIZE = 32
 CODE_CHARS = string.ascii_letters + string.digits
+CODE_EXTRACTOR = re.compile(r'^(\w+)$')
 EMAIL_VALIDATOR = re.compile(r"\"?([-+a-zA-Z0-9.`?{}/|]+@\w+\.\w+)\"?")
 
 def getSecretKey(key):
@@ -64,6 +65,23 @@ def makeUniqueCode(length):
 			return code
 		except IntegrityError:
 			continue
+
+def isValidCode(code_str):
+	return _matchCode(code_str) is not None
+
+def isValidCodeWithLength(code_str, length):
+	if not isinstance(length, int):
+		raise TypeError('length is not an int')
+	match = _matchCode(code_str)
+	return match is not None and len(match.group(1)) == length
+
+def _matchCode(code_str):
+	global CODE_EXTRACTOR
+
+	if not isinstance(code_str, str):
+		code_str = ''
+
+	return CODE_EXTRACTOR.match(code_str)
 
 def isValidPassword(password):
 	'''Validates that a password is a defined, non-empty string'''
